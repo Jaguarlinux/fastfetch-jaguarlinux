@@ -2405,6 +2405,18 @@ static const FFlogo J[] = {
         .colorKeys = FF_COLOR_FG_BLUE,
         .colorTitle = FF_COLOR_FG_MAGENTA,
     },
+    // JaguarLinux
+    {
+        .names = {"JaguarLinux", "jaguar"},
+        .lines = FASTFETCH_DATATEXT_LOGO_JAGUAR,
+        .colors = {
+            FF_COLOR_FG_DEFAULT,
+            FF_COLOR_FG_BLACK,
+            FF_COLOR_FG_YELLOW,
+        },
+        .colorKeys = FF_COLOR_FG_BLACK,
+        .colorTitle = FF_COLOR_FG_YELLOW,
+    },
     // LAST
     {},
 };
@@ -2694,18 +2706,6 @@ static const FFlogo L[] = {
     {
         .names = {"LinuxFromScratch", "lfs"},
         .lines = FASTFETCH_DATATEXT_LOGO_LFS,
-        .colors = {
-            FF_COLOR_FG_DEFAULT,
-            FF_COLOR_FG_BLACK,
-            FF_COLOR_FG_YELLOW,
-        },
-        .colorKeys = FF_COLOR_FG_BLACK,
-        .colorTitle = FF_COLOR_FG_YELLOW,
-    },
-    // JaguarLinux
-    {
-        .names = {"JaguarLinux", "jaguar"},
-        .lines = FASTFETCH_DATATEXT_LOGO_JAGUAR,
         .colors = {
             FF_COLOR_FG_DEFAULT,
             FF_COLOR_FG_BLACK,
