@@ -2410,12 +2410,12 @@ static const FFlogo J[] = {
         .names = {"jaguarLinux", "jaguar"},
         .lines = FASTFETCH_DATATEXT_LOGO_JAGUARLINUX,
         .colors = {
+            FF_COLOR_FG_RED,
             FF_COLOR_FG_DEFAULT,
-            FF_COLOR_FG_BLACK,
             FF_COLOR_FG_YELLOW,
         },
-        .colorKeys = FF_COLOR_FG_BLACK,
-        .colorTitle = FF_COLOR_FG_YELLOW,
+        .colorKeys = FF_COLOR_FG_RED,
+        .colorTitle = FF_COLOR_FG_DEFAULT,
     },
     // LAST
     {},
