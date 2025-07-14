@@ -62,6 +62,10 @@ const char* ffDetectGPUImpl(FF_MAYBE_UNUSED const FFGPUOptions* options, FFlist*
         gpu->deviceId = 0;
         gpu->frequency = FF_GPU_FREQUENCY_UNSET;
 
+        unsigned vendorId = 0, deviceId = 0, subSystemId = 0, revId = 0;
+        if (swscanf(buffer, L"PCI\\VEN_%x&DEV_%x&SUBSYS_%x&REV_%x", &vendorId, &deviceId, &subSystemId, &revId) == 4)
+            ffStrbufSetStatic(&gpu->vendor, ffGPUGetVendorString(vendorId));
+
         uint32_t pciBus = 0, pciAddr = 0, pciDev = 0, pciFunc = 0;
 
         ULONG pciBufLen = sizeof(pciBus);
@@ -90,15 +94,22 @@ const char* ffDetectGPUImpl(FF_MAYBE_UNUSED const FFGPUOptions* options, FFlist*
                 FF_HKEY_AUTO_DESTROY hDirectxKey = NULL;
                 if (ffRegOpenKeyForRead(HKEY_LOCAL_MACHINE, regDirectxKey, &hDirectxKey, NULL))
                 {
-                    uint32_t vendorId = 0;
-                    if(ffRegReadUint(hDirectxKey, L"VendorId", &vendorId, NULL) && vendorId)
-                        ffStrbufSetStatic(&gpu->vendor, ffGPUGetVendorString(vendorId));
+                    if (gpu->vendor.length == 0)
+                    {
+                        uint32_t vendorId = 0;
+                        if(ffRegReadUint(hDirectxKey, L"VendorId", &vendorId, NULL) && vendorId)
+                            ffStrbufSetStatic(&gpu->vendor, ffGPUGetVendorString(vendorId));
+                    }
 
-                    if (gpu->vendor.chars == FF_GPU_VENDOR_NAME_INTEL)
-                        gpu->type = gpu->deviceId == 20 ? FF_GPU_TYPE_INTEGRATED : FF_GPU_TYPE_DISCRETE;
+                    ffRegReadStrbuf(hDirectxKey, L"Description", &gpu->name, NULL);
 
                     ffRegReadUint64(hDirectxKey, L"DedicatedVideoMemory", &gpu->dedicated.total, NULL);
-                    ffRegReadUint64(hDirectxKey, L"DedicatedSystemMemory", &gpu->shared.total, NULL);
+                    if (ffRegReadUint64(hDirectxKey, L"DedicatedSystemMemory", &gpu->shared.total, NULL))
+                    {
+                        uint64_t sharedSystemMemory = 0;
+                        if (ffRegReadUint64(hDirectxKey, L"SharedSystemMemory", &sharedSystemMemory, NULL))
+                            gpu->shared.total += sharedSystemMemory;
+                    }
 
                     if (ffRegReadUint64(hDirectxKey, L"AdapterLuid", &adapterLuid, NULL))
                     {
@@ -125,37 +136,7 @@ const char* ffDetectGPUImpl(FF_MAYBE_UNUSED const FFGPUOptions* options, FFlist*
             }
         }
 
-        if (adapterLuid > 0)
-        {
-            HMODULE hgdi32 = GetModuleHandleW(L"gdi32.dll");
-            if (hgdi32)
-            {
-                FF_LIBRARY_LOAD_SYMBOL_LAZY(hgdi32, D3DKMTOpenAdapterFromLuid);
-                if (ffD3DKMTOpenAdapterFromLuid) // Windows 8 and later
-                {
-                    D3DKMT_OPENADAPTERFROMLUID openAdapterFromLuid = { .AdapterLuid = *(LUID*)&adapterLuid };
-                    if (NT_SUCCESS(ffD3DKMTOpenAdapterFromLuid(&openAdapterFromLuid)))
-                    {
-                        D3DKMT_ADAPTERTYPE adapterType = {};
-                        D3DKMT_QUERYADAPTERINFO queryAdapterInfo = {
-                            .hAdapter = openAdapterFromLuid.hAdapter,
-                            .Type = KMTQAITYPE_ADAPTERTYPE,
-                            .pPrivateDriverData = &adapterType,
-                            .PrivateDriverDataSize = sizeof(adapterType),
-                        };
-                        if (NT_SUCCESS(D3DKMTQueryAdapterInfo(&queryAdapterInfo))) // Vista and later
-                        {
-                            if (adapterType.HybridDiscrete)
-                                gpu->type = FF_GPU_TYPE_DISCRETE;
-                            else if (adapterType.HybridIntegrated)
-                                gpu->type = FF_GPU_TYPE_INTEGRATED;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (gpu->vendor.length == 0)
+        if (gpu->vendor.length == 0 || gpu->name.length == 0)
         {
             bufferLen = sizeof(buffer);
             if (CM_Get_DevNode_Registry_PropertyW(devInst, CM_DRP_DRIVER, NULL, buffer, &bufferLen, 0) == CR_SUCCESS &&
@@ -165,7 +146,7 @@ const char* ffDetectGPUImpl(FF_MAYBE_UNUSED const FFGPUOptions* options, FFlist*
                 FF_HKEY_AUTO_DESTROY hRegDriverKey = NULL;
                 if (ffRegOpenKeyForRead(HKEY_LOCAL_MACHINE, regDriverKey, &hRegDriverKey, NULL))
                 {
-                    if (ffRegReadStrbuf(hRegDriverKey, L"ProviderName", &gpu->vendor, NULL))
+                    if (gpu->vendor.length == 0 && ffRegReadStrbuf(hRegDriverKey, L"ProviderName", &gpu->vendor, NULL))
                     {
                         if (ffStrbufContainS(&gpu->vendor, "Intel"))
                             ffStrbufSetStatic(&gpu->vendor, FF_GPU_VENDOR_NAME_INTEL);
@@ -174,6 +155,8 @@ const char* ffDetectGPUImpl(FF_MAYBE_UNUSED const FFGPUOptions* options, FFlist*
                         else if (ffStrbufContainS(&gpu->vendor, "AMD") || ffStrbufContainS(&gpu->vendor, "ATI"))
                             ffStrbufSetStatic(&gpu->vendor, FF_GPU_VENDOR_NAME_AMD);
                     }
+                    if (gpu->name.length == 0)
+                        ffRegReadStrbuf(hRegDriverKey, L"DriverDesc", &gpu->name, NULL);
                     if (gpu->driver.length == 0)
                         ffRegReadStrbuf(hRegDriverKey, L"DriverVersion", &gpu->driver, NULL);
                     if (gpu->dedicated.total == FF_GPU_VMEM_SIZE_UNSET)
@@ -192,19 +175,11 @@ const char* ffDetectGPUImpl(FF_MAYBE_UNUSED const FFGPUOptions* options, FFlist*
         __typeof__(&ffDetectNvidiaGpuInfo) detectFn;
         const char* dllName;
 
-        if (getDriverSpecificDetectionFn(gpu->vendor.chars, &detectFn, &dllName) && (options->temp || options->driverSpecific))
+        if (options->driverSpecific && getDriverSpecificDetectionFn(gpu->vendor.chars, &detectFn, &dllName))
         {
-            unsigned vendorId = 0, deviceId = 0, subSystemId = 0, revId = 0;
-            bufferLen = sizeof(buffer);
-            if (CM_Get_DevNode_Registry_PropertyW(devInst, CM_DRP_HARDWAREID, NULL, buffer, &bufferLen, 0) == CR_SUCCESS)
-            {
-                swscanf(buffer, L"PCI\\VEN_%x&DEV_%x&SUBSYS_%x&REV_%x", &vendorId, &deviceId, &subSystemId, &revId);
-                ffStrbufSetStatic(&gpu->vendor, ffGPUGetVendorString(vendorId));
-            }
-
             detectFn(
                 &(FFGpuDriverCondition) {
-                    .type = FF_GPU_DRIVER_CONDITION_TYPE_DEVICE_ID
+                    .type = (deviceId > 0 ? FF_GPU_DRIVER_CONDITION_TYPE_DEVICE_ID : 0)
                             | (adapterLuid > 0 ? FF_GPU_DRIVER_CONDITION_TYPE_LUID : 0)
                             | (pciAddr > 0 ? FF_GPU_DRIVER_CONDITION_TYPE_BUS_ID : 0),
                     .pciDeviceId = {
@@ -243,8 +218,89 @@ const char* ffDetectGPUImpl(FF_MAYBE_UNUSED const FFGPUOptions* options, FFlist*
             if (CM_Get_DevNode_Registry_PropertyW(devInst, CM_DRP_DEVICEDESC, NULL, buffer, &bufferLen, 0) == CR_SUCCESS)
                 ffStrbufSetWS(&gpu->name, buffer);
         }
-        if (gpu->type == FF_GPU_TYPE_UNKNOWN && gpu->dedicated.total != FF_GPU_VMEM_SIZE_UNSET)
-            gpu->type = gpu->dedicated.total >= 1024 * 1024 * 1024 ? FF_GPU_TYPE_DISCRETE : FF_GPU_TYPE_INTEGRATED;
+
+        if (gpu->type == FF_GPU_TYPE_UNKNOWN && adapterLuid > 0)
+        {
+            HMODULE hgdi32 = GetModuleHandleW(L"gdi32.dll");
+            if (hgdi32)
+            {
+                FF_LIBRARY_LOAD_SYMBOL_LAZY(hgdi32, D3DKMTOpenAdapterFromLuid);
+                if (ffD3DKMTOpenAdapterFromLuid) // Windows 8 and later
+                {
+                    D3DKMT_OPENADAPTERFROMLUID openAdapterFromLuid = { .AdapterLuid = *(LUID*)&adapterLuid };
+                    if (NT_SUCCESS(ffD3DKMTOpenAdapterFromLuid(&openAdapterFromLuid)))
+                    {
+                        D3DKMT_ADAPTERTYPE adapterType = {};
+                        D3DKMT_QUERYADAPTERINFO queryAdapterInfo = {
+                            .hAdapter = openAdapterFromLuid.hAdapter,
+                            .Type = KMTQAITYPE_ADAPTERTYPE,
+                            .pPrivateDriverData = &adapterType,
+                            .PrivateDriverDataSize = sizeof(adapterType),
+                        };
+                        if (NT_SUCCESS(D3DKMTQueryAdapterInfo(&queryAdapterInfo))) // Vista and later
+                        {
+                            if (adapterType.HybridDiscrete)
+                                gpu->type = FF_GPU_TYPE_DISCRETE;
+                            else if (adapterType.HybridIntegrated)
+                                gpu->type = FF_GPU_TYPE_INTEGRATED;
+                        }
+
+                        if (gpu->frequency == FF_GPU_FREQUENCY_UNSET)
+                        {
+                            for (ULONG nodeIdx = 0; ; nodeIdx++)
+                            {
+                                D3DKMT_NODEMETADATA nodeMetadata = {
+                                    .NodeOrdinalAndAdapterIndex = (0 << 16) | nodeIdx,
+                                };
+                                queryAdapterInfo = (D3DKMT_QUERYADAPTERINFO) {
+                                    .hAdapter = openAdapterFromLuid.hAdapter,
+                                    .Type = KMTQAITYPE_NODEMETADATA,
+                                    .pPrivateDriverData = &nodeMetadata,
+                                    .PrivateDriverDataSize = sizeof(nodeMetadata),
+                                };
+                                if (!NT_SUCCESS(D3DKMTQueryAdapterInfo(&queryAdapterInfo))) break; // Windows 10 and later
+                                if (nodeMetadata.NodeData.EngineType != DXGK_ENGINE_TYPE_3D) continue;
+
+                                D3DKMT_QUERYSTATISTICS queryStatistics = {
+                                    .Type = D3DKMT_QUERYSTATISTICS_NODE2,
+                                    .AdapterLuid = *(LUID*)&adapterLuid,
+                                    .QueryNode2 = { .PhysicalAdapterIndex = 0, .NodeOrdinal = (UINT16) nodeIdx },
+                                };
+                                if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics))) // Windows 11 (22H2) and later
+                                {
+                                    gpu->frequency = (uint32_t) (queryStatistics.QueryResult.NodeInformation.NodePerfData.MaxFrequency / 1000 / 1000);
+                                    break;
+                                }
+                            }
+                        }
+
+                        D3DKMT_CLOSEADAPTER closeAdapter = { .hAdapter = openAdapterFromLuid.hAdapter };
+                        (void) D3DKMTCloseAdapter(&closeAdapter);
+                        openAdapterFromLuid.hAdapter = 0;
+                    }
+
+                    if (options->temp && gpu->temperature != gpu->temperature)
+                    {
+                        D3DKMT_QUERYSTATISTICS queryStatistics = {
+                            .Type = D3DKMT_QUERYSTATISTICS_PHYSICAL_ADAPTER,
+                            .AdapterLuid = *(LUID*)&adapterLuid,
+                            .QueryPhysAdapter = { .PhysicalAdapterIndex = 0 },
+                        };
+                        if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)) &&
+                            queryStatistics.QueryResult.PhysAdapterInformation.AdapterPerfData.Temperature != 0)
+                            gpu->temperature = queryStatistics.QueryResult.PhysAdapterInformation.AdapterPerfData.Temperature / 10.0;
+                    }
+                }
+            }
+        }
+
+        if (gpu->type == FF_GPU_TYPE_UNKNOWN)
+        {
+            if (gpu->vendor.chars == FF_GPU_VENDOR_NAME_INTEL)
+                gpu->type = gpu->deviceId == 20 ? FF_GPU_TYPE_INTEGRATED : FF_GPU_TYPE_DISCRETE;
+            else if (gpu->dedicated.total != FF_GPU_VMEM_SIZE_UNSET)
+                gpu->type = gpu->dedicated.total >= 1024 * 1024 * 1024 ? FF_GPU_TYPE_DISCRETE : FF_GPU_TYPE_INTEGRATED;
+        }
     }
 
     return NULL;
