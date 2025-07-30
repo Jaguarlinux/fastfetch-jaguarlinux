@@ -1,3 +1,4 @@
+#include "common/duration.h"
 #include "common/printing.h"
 #include "common/jsonconfig.h"
 #include "common/time.h"
@@ -18,13 +19,12 @@ void ffPrintUptime(FFUptimeOptions* options)
     }
 
     uint64_t uptime = result.uptime;
+    FF_STRBUF_AUTO_DESTROY buffer = ffStrbufCreate();
+    ffDurationAppendNum((uptime + 500) / 1000, &buffer);
 
     if(options->moduleArgs.outputFormat.length == 0)
     {
         ffPrintLogoAndKey(FF_UPTIME_MODULE_NAME, 0, &options->moduleArgs, FF_PRINT_TYPE_DEFAULT);
-        FF_STRBUF_AUTO_DESTROY buffer = ffStrbufCreate();
-        ffParseDuration((uptime + 500) / 1000, &buffer);
-
         ffStrbufPutTo(&buffer, stdout);
     }
     else
@@ -39,6 +39,8 @@ void ffPrintUptime(FFUptimeOptions* options)
         uptime /= 24;
         uint32_t days = (uint32_t) uptime;
 
+        FFTimeGetAgeResult age = ffTimeGetAge(result.bootTime, ffTimeGetNow());
+
         FF_PRINT_FORMAT_CHECKED(FF_UPTIME_MODULE_NAME, 0, &options->moduleArgs, FF_PRINT_TYPE_DEFAULT, ((FFformatarg[]){
             FF_FORMAT_ARG(days, "days"),
             FF_FORMAT_ARG(hours, "hours"),
@@ -46,6 +48,10 @@ void ffPrintUptime(FFUptimeOptions* options)
             FF_FORMAT_ARG(seconds, "seconds"),
             FF_FORMAT_ARG(milliseconds, "milliseconds"),
             {FF_FORMAT_ARG_TYPE_STRING, ffTimeToShortStr(result.bootTime), "boot-time"},
+            FF_FORMAT_ARG(age.years, "years"),
+            FF_FORMAT_ARG(age.daysOfYear, "days-of-year"),
+            FF_FORMAT_ARG(age.yearsFraction, "years-fraction"),
+            FF_FORMAT_ARG(buffer, "formatted")
         }));
     }
 }
@@ -67,7 +73,7 @@ void ffParseUptimeJsonObject(FFUptimeOptions* options, yyjson_val* module)
     yyjson_obj_foreach(module, idx, max, key_, val)
     {
         const char* key = yyjson_get_str(key_);
-        if(ffStrEqualsIgnCase(key, "type"))
+        if(ffStrEqualsIgnCase(key, "type") || ffStrEqualsIgnCase(key, "condition"))
             continue;
 
         if (ffJsonConfigParseModuleArgs(key, val, &options->moduleArgs))
@@ -110,12 +116,15 @@ static FFModuleBaseInfo ffModuleInfo = {
     .generateJsonResult = (void*) ffGenerateUptimeJsonResult,
     .generateJsonConfig = (void*) ffGenerateUptimeJsonConfig,
     .formatArgs = FF_FORMAT_ARG_LIST(((FFModuleFormatArg[]) {
-        {"Days", "days"},
-        {"Hours", "hours"},
-        {"Minutes", "minutes"},
-        {"Seconds", "seconds"},
-        {"Milliseconds", "milliseconds"},
+        {"Days after boot", "days"},
+        {"Hours after boot", "hours"},
+        {"Minutes after boot", "minutes"},
+        {"Seconds after boot", "seconds"},
+        {"Milliseconds after boot", "milliseconds"},
         {"Boot time in local timezone", "boot-time"},
+        {"Years integer after boot", "years"},
+        {"Days of year after boot", "days-of-year"},
+        {"Years fraction after boot", "years-fraction"},
     }))
 };
 

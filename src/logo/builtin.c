@@ -11,16 +11,6 @@ const FFlogo ffLogoUnknown = {
 };
 
 static const FFlogo A[] = {
-    //Ada
-    {
-        .names = {"Ada"},
-        .lines = FASTFETCH_DATATEXT_LOGO_ADA,
-        .colors = {
-            FF_COLOR_FG_256 "15",
-            FF_COLOR_FG_256 "14",
-            FF_COLOR_FG_256 "16",
-        }
-    },
     // Adélie
     {
         .names = {"Adélie", "Adelie"},
@@ -38,6 +28,15 @@ static const FFlogo A[] = {
         .colors = {
             FF_COLOR_FG_CYAN,
             FF_COLOR_FG_CYAN,
+        },
+    },
+    // Aeon
+    {
+        .names = {"Aeon"},
+        .lines = FASTFETCH_DATATEXT_LOGO_AEON,
+        .colors = {
+            FF_COLOR_FG_256 "36",
+            FF_COLOR_FG_256 "36",
         },
     },
     // Afterglow
@@ -1623,16 +1622,6 @@ static const FFlogo E[] = {
         },
         .colorKeys = FF_COLOR_FG_BLUE,
         .colorTitle = FF_COLOR_FG_DEFAULT,
-    },
-    // Evolinx
-    {
-        .names = {"Evolinx"},
-        .lines = FASTFETCH_DATATEXT_LOGO_EVOLINX,
-        .colors = {
-            FF_COLOR_FG_BLUE,
-        },
-        .colorKeys = FF_COLOR_FG_BLUE,
-        .colorTitle = FF_COLOR_FG_BLUE,
     },
     // EvolutionOS
     {
@@ -5417,6 +5406,16 @@ static const FFlogo X[] = {
             FF_COLOR_FG_256 "25",
             FF_COLOR_FG_DEFAULT,
         },
+    },
+    //Xray_OS
+    {
+        .names = {"Xray_OS"},
+        .lines = FASTFETCH_DATATEXT_LOGO_XRAY_OS,
+        .colors = {
+            FF_COLOR_FG_256 "15",
+            FF_COLOR_FG_256 "14",
+            FF_COLOR_FG_256 "16",
+        }
     },
     // LAST
     {},

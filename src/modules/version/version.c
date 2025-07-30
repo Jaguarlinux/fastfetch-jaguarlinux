@@ -61,7 +61,7 @@ void ffParseVersionJsonObject(FFVersionOptions* options, yyjson_val* module)
     yyjson_obj_foreach(module, idx, max, key_, val)
     {
         const char* key = yyjson_get_str(key_);
-        if(ffStrEqualsIgnCase(key, "type"))
+        if(ffStrEqualsIgnCase(key, "type") || ffStrEqualsIgnCase(key, "condition"))
             continue;
 
         if (ffJsonConfigParseModuleArgs(key, val, &options->moduleArgs))
@@ -120,7 +120,7 @@ static FFModuleBaseInfo ffModuleInfo = {
     .generateJsonResult = (void*) ffGenerateVersionJsonResult,
     .generateJsonConfig = (void*) ffGenerateVersionJsonConfig,
     .formatArgs = FF_FORMAT_ARG_LIST(((FFModuleFormatArg[]) {
-        {"Project name", "name"},
+        {"Project name", "project-name"},
         {"Version", "version"},
         {"Version tweak", "version-tweak"},
         {"Build type (debug or release)", "build-type"},

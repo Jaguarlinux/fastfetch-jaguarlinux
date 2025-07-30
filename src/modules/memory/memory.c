@@ -1,7 +1,7 @@
 #include "common/printing.h"
 #include "common/jsonconfig.h"
-#include "common/parsing.h"
 #include "common/percent.h"
+#include "common/size.h"
 #include "detection/memory/memory.h"
 #include "modules/memory/memory.h"
 #include "util/stringUtils.h"
@@ -18,10 +18,10 @@ void ffPrintMemory(FFMemoryOptions* options)
     }
 
     FF_STRBUF_AUTO_DESTROY usedPretty = ffStrbufCreate();
-    ffParseSize(storage.bytesUsed, &usedPretty);
+    ffSizeAppendNum(storage.bytesUsed, &usedPretty);
 
     FF_STRBUF_AUTO_DESTROY totalPretty = ffStrbufCreate();
-    ffParseSize(storage.bytesTotal, &totalPretty);
+    ffSizeAppendNum(storage.bytesTotal, &totalPretty);
 
     double percentage = storage.bytesTotal == 0
         ? 0
@@ -91,7 +91,7 @@ void ffParseMemoryJsonObject(FFMemoryOptions* options, yyjson_val* module)
     yyjson_obj_foreach(module, idx, max, key_, val)
     {
         const char* key = yyjson_get_str(key_);
-        if(ffStrEqualsIgnCase(key, "type"))
+        if(ffStrEqualsIgnCase(key, "type") || ffStrEqualsIgnCase(key, "condition"))
             continue;
 
         if (ffJsonConfigParseModuleArgs(key, val, &options->moduleArgs))

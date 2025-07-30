@@ -3,7 +3,8 @@
     "$defs": {
         "colors": {
             "type": "string",
-            "enum": [
+            "description": "https://github.com/fastfetch-cli/fastfetch/wiki/Color-Format-Specification",
+            "examples": [
                 "reset_", "bright_", "dim_", "italic_", "underline_", "blink_", "inverse_", "hidden_", "strike_", "light_",
                 "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white", "default"
             ]
@@ -52,6 +53,7 @@
                             "bar-monochrome"
                         ]
                     },
+                    "uniqueItems": true,
                     "default": [
                         "num",
                         "num-color"
@@ -105,6 +107,146 @@
                             "description": "Values (in celsius) greater than green and less than yellow will be shown in yellow.\nValues greater than yellow will be shown in red"
                         }
                     }
+                }
+            ]
+        },
+        "systems": {
+            "type": "string",
+            "enum": [
+                "Android",
+                "Linux",
+                "DragonFly",
+                "MidnightBSD",
+                "FreeBSD",
+                "macOS",
+                "Windows",
+                "SunOS",
+                "OpenBSD",
+                "NetBSD",
+                "Haiku"
+            ]
+        },
+        "architectures": {
+            "type": "string",
+            "enum": [
+                "x86_64",
+                "i386",
+                "ia64",
+                "aarch64",
+                "arm",
+                "mips",
+                "powerpc",
+                "riscv",
+                "s390x",
+                "loongarch",
+                "sparc",
+                "alpha",
+                "hppa",
+                "m68k"
+            ]
+        },
+        "conditions": {
+            "description": "Only show the module if conditions are met",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "system": {
+                    "description": "System name to match",
+                    "oneOf": [
+                        {
+                            "$ref": "#/$defs/systems"
+                        },
+                        {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                                "$ref": "#/$defs/systems"
+                            },
+                            "description": "Array of system names to match"
+                        },
+                        {
+                            "type": "null",
+                            "description": "Null to disable this condition"
+                        }
+                    ]
+                },
+                "!system": {
+                    "description": "System name to not match",
+                    "oneOf": [
+                        {
+                            "$ref": "#/$defs/systems"
+                        },
+                        {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                                "$ref": "#/$defs/systems"
+                            },
+                            "description": "Array of system names to not match"
+                        },
+                        {
+                            "type": "null",
+                            "description": "Null to disable this condition"
+                        }
+                    ]
+                },
+                "arch": {
+                    "description": "Architecture to match",
+                    "oneOf": [
+                        {
+                            "$ref": "#/$defs/architectures"
+                        },
+                        {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                                "$ref": "#/$defs/architectures"
+                            },
+                            "description": "Array of architectures to match"
+                        },
+                        {
+                            "type": "null",
+                            "description": "Null to disable this condition"
+                        }
+                    ]
+                },
+                "!arch": {
+                    "description": "Architecture to not match",
+                    "oneOf": [
+                        {
+                            "$ref": "#/$defs/architectures"
+                        },
+                        {
+                            "type": "array",
+                            "uniqueItems": true,
+                            "items": {
+                                "$ref": "#/$defs/architectures"
+                            },
+                            "description": "Array of architectures to not match"
+                        },
+                        {
+                            "type": "null",
+                            "description": "Null to disable this condition"
+                        }
+                    ]
+                }
+            }
+        },
+        "spaceBeforeUnit": {
+            "type": "string",
+            "description": "Whether to put a space before the unit",
+            "oneOf": [
+                {
+                    "const": "default",
+                    "description": "Use the default behavior of the module"
+                },
+                {
+                    "const": "always",
+                    "description": "Always add a space before the unit"
+                },
+                {
+                    "const": "never",
+                    "description": "Never add a space before the unit"
                 }
             ]
         },
@@ -183,7 +325,7 @@
             "type": "string"
         },
         "diskFormat": {
-            "description": "Output format of the module `Disk`. See Wiki for formatting syntax\n    1. {size-used}: Size used\n    2. {size-total}: Size total\n    3. {size-percentage}: Size percentage num\n    4. {files-used}: Files used\n    5. {files-total}: Files total\n    6. {files-percentage}: Files percentage num\n    7. {is-external}: True if external volume\n    8. {is-hidden}: True if hidden volume\n    9. {filesystem}: Filesystem\n    10. {name}: Label / name\n    11. {is-readonly}: True if read-only\n    12. {create-time}: Create time in local timezone\n    13. {size-percentage-bar}: Size percentage bar\n    14. {files-percentage-bar}: Files percentage bar\n    15. {days}: Days after creation\n    16. {hours}: Hours after creation\n    17. {minutes}: Minutes after creation\n    18. {seconds}: Seconds after creation\n    19. {milliseconds}: Milliseconds after creation\n    20. {mountpoint}: Mount point / drive letter\n    21. {mount-from}: Mount from (device path)",
+            "description": "Output format of the module `Disk`. See Wiki for formatting syntax\n    1. {size-used}: Size used\n    2. {size-total}: Size total\n    3. {size-percentage}: Size percentage num\n    4. {files-used}: Files used\n    5. {files-total}: Files total\n    6. {files-percentage}: Files percentage num\n    7. {is-external}: True if external volume\n    8. {is-hidden}: True if hidden volume\n    9. {filesystem}: Filesystem\n    10. {name}: Label / name\n    11. {is-readonly}: True if read-only\n    12. {create-time}: Create time in local timezone\n    13. {size-percentage-bar}: Size percentage bar\n    14. {files-percentage-bar}: Files percentage bar\n    15. {days}: Days after creation\n    16. {hours}: Hours after creation\n    17. {minutes}: Minutes after creation\n    18. {seconds}: Seconds after creation\n    19. {milliseconds}: Milliseconds after creation\n    20. {mountpoint}: Mount point / drive letter\n    21. {mount-from}: Mount from (device path)\n    22. {years}: Years integer after creation\n    23. {days-of-year}: Days of year after creation\n    24. {years-fraction}: Years fraction after creation",
             "type": "string"
         },
         "diskioFormat": {
@@ -195,7 +337,7 @@
             "type": "string"
         },
         "editorFormat": {
-            "description": "Output format of the module `Editor`. See Wiki for formatting syntax\n    1. {type}: Type (Visual / Editor)\n    2. {name}: Name\n    3. {exe-name}: Exe name of real path\n    4. {full-path}: Full path of real path\n    5. {version}: Version",
+            "description": "Output format of the module `Editor`. See Wiki for formatting syntax\n    1. {type}: Type (Visual / Editor)\n    2. {name}: Name\n    3. {exe-name}: Exe name of real path\n    4. {path}: Full path of real path\n    5. {version}: Version",
             "type": "string"
         },
         "fontFormat": {
@@ -279,7 +421,7 @@
             "type": "string"
         },
         "packagesFormat": {
-            "description": "Output format of the module `Packages`. See Wiki for formatting syntax\n    1. {all}: Number of all packages\n    2. {pacman}: Number of pacman packages\n    3. {pacman-branch}: Pacman branch on manjaro\n    4. {dpkg}: Number of dpkg packages\n    5. {rpm}: Number of rpm packages\n    6. {emerge}: Number of emerge packages\n    7. {eopkg}: Number of eopkg packages\n    8. {xbps}: Number of xbps packages\n    9. {nix-system}: Number of nix-system packages\n    10. {nix-user}: Number of nix-user packages\n    11. {nix-default}: Number of nix-default packages\n    12. {apk}: Number of apk packages\n    13. {pkg}: Number of pkg packages\n    14. {flatpak-system}: Number of flatpak-system app packages\n    15. {flatpak-user}: Number of flatpak-user app packages\n    16. {snap}: Number of snap packages\n    17. {brew}: Number of brew packages\n    18. {brew-cask}: Number of brew-cask packages\n    19. {macports}: Number of macports packages\n    20. {scoop}: Number of scoop packages\n    21. {choco}: Number of choco packages\n    22. {pkgtool}: Number of pkgtool packages\n    23. {paludis}: Number of paludis packages\n    24. {winget}: Number of winget packages\n    25. {opkg}: Number of opkg packages\n    26. {am-system}: Number of am-system packages\n    27. {sorcery}: Number of sorcery packages\n    28. {lpkg}: Number of lpkg packages\n    29. {lpkgbuild}: Number of lpkgbuild packages\n    30. {guix-system}: Number of guix-system packages\n    31. {guix-user}: Number of guix-user packages\n    32. {guix-home}: Number of guix-home packages\n    33. {linglong}: Number of linglong packages\n    34. {pacstall}: Number of pacstall packages\n    35. {mport}: Number of mport packages\n    36. {qi}: Number of qi packages\n    37. {am-user}: Number of am-user (aka appman) packages\n    38. {pkgsrc}: Number of pkgsrc packages\n    39. {hpkg-system}: Number of hpkg-system packages\n    40. {hpkg-user}: Number of hpkg-user packages\n    41. {pisi}: Number of pisi packages\n    42. {soar}: Number of soar packages\n    43. {nix-all}: Total number of all nix packages\n    44. {flatpak-all}: Total number of all flatpak app packages\n    45. {brew-all}: Total number of all brew packages\n    46. {guix-all}: Total number of all guix packages\n    47. {hpkg-all}: Total number of all hpkg packages",
+            "description": "Output format of the module `Packages`. See Wiki for formatting syntax\n    1. {all}: Number of all packages\n    2. {pacman}: Number of pacman packages\n    3. {pacman-branch}: Pacman branch on manjaro\n    4. {dpkg}: Number of dpkg packages\n    5. {rpm}: Number of rpm packages\n    6. {emerge}: Number of emerge packages\n    7. {eopkg}: Number of eopkg packages\n    8. {xbps}: Number of xbps packages\n    9. {nix-system}: Number of nix-system packages\n    10. {nix-user}: Number of nix-user packages\n    11. {nix-default}: Number of nix-default packages\n    12. {apk}: Number of apk packages\n    13. {pkg}: Number of pkg packages\n    14. {flatpak-system}: Number of flatpak-system app packages\n    15. {flatpak-user}: Number of flatpak-user app packages\n    16. {snap}: Number of snap packages\n    17. {brew}: Number of brew packages\n    18. {brew-cask}: Number of brew-cask packages\n    19. {macports}: Number of macports packages\n    20. {scoop}: Number of scoop packages\n    21. {choco}: Number of choco packages\n    22. {pkgtool}: Number of pkgtool packages\n    23. {paludis}: Number of paludis packages\n    24. {winget}: Number of winget packages\n    25. {opkg}: Number of opkg packages\n    26. {am-system}: Number of am-system packages\n    27. {sorcery}: Number of sorcery packages\n    28. {lpkg}: Number of lpkg packages\n    29. {lpkgbuild}: Number of lpkgbuild packages\n    30. {guix-system}: Number of guix-system packages\n    31. {guix-user}: Number of guix-user packages\n    32. {guix-home}: Number of guix-home packages\n    33. {linglong}: Number of linglong packages\n    34. {pacstall}: Number of pacstall packages\n    35. {mport}: Number of mport packages\n    36. {am-user}: Number of am-user (aka appman) packages\n    37. {pkgsrc}: Number of pkgsrc packages\n    38. {hpkg-system}: Number of hpkg-system packages\n    39. {hpkg-user}: Number of hpkg-user packages\n    40. {pisi}: Number of pisi packages\n    41. {soar}: Number of soar packages\n    42. {nix-all}: Total number of all nix packages\n    43. {flatpak-all}: Total number of all flatpak app packages\n    44. {brew-all}: Total number of all brew packages\n    45. {guix-all}: Total number of all guix packages\n    46. {hpkg-all}: Total number of all hpkg packages",
             "type": "string"
         },
         "physicaldiskFormat": {
@@ -306,10 +448,6 @@
             "description": "Output format of the module `PublicIp`. See Wiki for formatting syntax\n    1. {ip}: Public IP address\n    2. {location}: Location",
             "type": "string"
         },
-        "separatorFormat": {
-            "description": "Output format of the module `Separator`. See Wiki for formatting syntax\n    1. {string}: Separator string\n    2. {outputColor}: Output color\n    3. {length}: Length",
-            "type": "string"
-        },
         "shellFormat": {
             "description": "Output format of the module `Shell`. See Wiki for formatting syntax\n    1. {process-name}: Shell process name\n    2. {exe}: The first argument of the command line when running the shell\n    3. {exe-name}: Shell base name of arg0\n    4. {version}: Shell version\n    5. {pid}: Shell pid\n    6. {pretty-name}: Shell pretty name\n    7. {exe-path}: Shell full exe path\n    8. {tty}: Shell tty used",
             "type": "string"
@@ -319,7 +457,7 @@
             "type": "string"
         },
         "swapFormat": {
-            "description": "Output format of the module `Swap`. See Wiki for formatting syntax\n    1. {used}: Used size\n    2. {total}: Total size\n    3. {percentage}: Percentage used (num)\n    4. {percentage-bar}: Percentage used (bar)",
+            "description": "Output format of the module `Swap`. See Wiki for formatting syntax\n    1. {used}: Used size\n    2. {total}: Total size\n    3. {percentage}: Percentage used (num)\n    4. {percentage-bar}: Percentage used (bar)\n    5. {name}: Name",
             "type": "string"
         },
         "terminalFormat": {
@@ -351,15 +489,15 @@
             "type": "string"
         },
         "uptimeFormat": {
-            "description": "Output format of the module `Uptime`. See Wiki for formatting syntax\n    1. {days}: Days\n    2. {hours}: Hours\n    3. {minutes}: Minutes\n    4. {seconds}: Seconds\n    5. {milliseconds}: Milliseconds\n    6. {boot-time}: Boot time in local timezone",
+            "description": "Output format of the module `Uptime`. See Wiki for formatting syntax\n    1. {days}: Days after boot\n    2. {hours}: Hours after boot\n    3. {minutes}: Minutes after boot\n    4. {seconds}: Seconds after boot\n    5. {milliseconds}: Milliseconds after boot\n    6. {boot-time}: Boot time in local timezone\n    7. {years}: Years integer after boot\n    8. {days-of-year}: Days of year after boot\n    9. {years-fraction}: Years fraction after boot",
             "type": "string"
         },
         "usersFormat": {
-            "description": "Output format of the module `Users`. See Wiki for formatting syntax\n    1. {name}: User name\n    2. {host-name}: Host name\n    3. {session}: Session name\n    4. {client-ip}: Client IP\n    5. {login-time}: Login Time in local timezone\n    6. {days}: Days after login\n    7. {hours}: Hours after login\n    8. {minutes}: Minutes after login\n    9. {seconds}: Seconds after login\n    10. {milliseconds}: Milliseconds after login",
+            "description": "Output format of the module `Users`. See Wiki for formatting syntax\n    1. {name}: User name\n    2. {host-name}: Host name\n    3. {session-name}: Session name\n    4. {client-ip}: Client IP\n    5. {login-time}: Login Time in local timezone\n    6. {days}: Days after login\n    7. {hours}: Hours after login\n    8. {minutes}: Minutes after login\n    9. {seconds}: Seconds after login\n    10. {milliseconds}: Milliseconds after login\n    11. {years}: Years integer after login\n    12. {days-of-year}: Days of year after login\n    13. {years-fraction}: Years fraction after login",
             "type": "string"
         },
         "versionFormat": {
-            "description": "Output format of the module `Version`. See Wiki for formatting syntax\n    1. {name}: Project name\n    2. {version}: Version\n    3. {version-tweak}: Version tweak\n    4. {build-type}: Build type (debug or release)\n    5. {sysname}: System name\n    6. {arch}: Architecture\n    7. {cmake-built-type}: CMake build type when compiling (Debug, Release, RelWithDebInfo, MinSizeRel)\n    8. {compile-time}: Date time when compiling\n    9. {compiler}: Compiler used when compiling\n    10. {libc}: Libc used when compiling",
+            "description": "Output format of the module `Version`. See Wiki for formatting syntax\n    1. {project-name}: Project name\n    2. {version}: Version\n    3. {version-tweak}: Version tweak\n    4. {build-type}: Build type (debug or release)\n    5. {sysname}: System name\n    6. {arch}: Architecture\n    7. {cmake-built-type}: CMake build type when compiling (Debug, Release, RelWithDebInfo, MinSizeRel)\n    8. {compile-time}: Date time when compiling\n    9. {compiler}: Compiler used when compiling\n    10. {libc}: Libc used when compiling",
             "type": "string"
         },
         "vulkanFormat": {
@@ -803,6 +941,9 @@
                             "minimum": 0,
                             "maximum": 9,
                             "default": 2
+                        },
+                        "spaceBeforeUnit": {
+                            "$ref": "#/$defs/spaceBeforeUnit"
                         }
                     }
                 },
@@ -845,6 +986,9 @@
                                     "default": "light_red"
                                 }
                             }
+                        },
+                        "spaceBeforeUnit": {
+                            "$ref": "#/$defs/spaceBeforeUnit"
                         }
                     }
                 },
@@ -917,6 +1061,15 @@
                                     "default": "light_red"
                                 }
                             }
+                        },
+                        "spaceBeforeUnit": {
+                            "$ref": "#/$defs/spaceBeforeUnit"
+                        },
+                        "width": {
+                            "type": "integer",
+                            "description": "Set the width of the percentage number, in number of characters",
+                            "minimum": 0,
+                            "default": 0
                         }
                     }
                 },
@@ -931,6 +1084,45 @@
                             "minimum": -1,
                             "maximum": 9,
                             "default": 2
+                        },
+                        "spaceBeforeUnit": {
+                            "$ref": "#/$defs/spaceBeforeUnit"
+                        }
+                    }
+                },
+                "duration": {
+                    "type": "object",
+                    "description": "Set how duration values should be displayed",
+                    "properties": {
+                        "abbreviation": {
+                            "type": "boolean",
+                            "description": "Set whether to abbreviate duration values\nIf true, the output will be in the form of \"1h 2m\" instead of \"1 hour, 2 mins\"",
+                            "default": false
+                        },
+                        "spaceBeforeUnit": {
+                            "$ref": "#/$defs/spaceBeforeUnit"
+                        }
+                    }
+                },
+                "fraction": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "description": "Set how ordinary fraction numbers should be displayed",
+                    "properties": {
+                        "ndigits": {
+                            "oneOf": [
+                                {
+                                    "type": "number",
+                                    "description": "Set the number of digits to keep after the decimal point when formatting ordinary fraction numbers",
+                                    "minimum": 0,
+                                    "maximum": 9
+                                },
+                                {
+                                    "type": "null",
+                                    "description": "The number of digits will be automatically determined based on the value"
+                                }
+                            ],
+                            "default": null
                         }
                     }
                 },
@@ -987,6 +1179,7 @@
                             "host",
                             "icons",
                             "initsystem",
+                            "keyboard",
                             "kernel",
                             "lm",
                             "loadavg",
@@ -995,6 +1188,7 @@
                             "media",
                             "memory",
                             "monitor",
+                            "mouse",
                             "netio",
                             "opencl",
                             "opengl",
@@ -1049,6 +1243,9 @@
                                     "type": {
                                         "const": "break",
                                         "description": "Print a empty line"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1089,6 +1286,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/batteryFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1118,6 +1318,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/biosFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1155,6 +1358,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/bluetoothFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1184,6 +1390,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/bluetoothradioFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1213,6 +1422,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/boardFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1242,6 +1454,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/bootmgrFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1286,6 +1501,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/brightnessFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1318,6 +1536,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/btrfsFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1347,6 +1568,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/cameraFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1376,6 +1600,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/chassisFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1413,6 +1640,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/cpuFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1445,6 +1675,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/cpucacheFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1488,6 +1721,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/cpuusageFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1549,6 +1785,9 @@
                                     },
                                     "keyIcon": {
                                         "$ref": "#/$defs/keyIcon"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1590,6 +1829,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/commandFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1622,6 +1864,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/cursorFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1653,6 +1898,9 @@
                                     "format": {
                                         "description": "Text to print",
                                         "type": "string"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1685,6 +1933,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/datetimeFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1739,6 +1990,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/displayFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1757,7 +2011,8 @@
                                     },
                                     "hideFolders": {
                                         "type": "string",
-                                        "description": "A colon (semicolon on Windows) separated list of folder paths to hide from the disk output\nDefault: /efi:/boot:/boot/efi"
+                                        "description": "A colon (semicolon on Windows) separated list of folder paths to hide from the disk output",
+                                        "default": "/efi:/boot:/boot/efi:/boot/firmware"
                                     },
                                     "hideFS": {
                                         "type": "string",
@@ -1813,6 +2068,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/diskFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1857,6 +2115,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/diskioFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1891,6 +2152,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/deFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1929,6 +2193,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/dnsFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1961,6 +2228,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/editorFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -1993,6 +2263,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/fontFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2025,6 +2298,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/gamepadFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2084,6 +2360,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/gpuFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2113,6 +2392,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/hostFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2142,6 +2424,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/iconsFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2171,6 +2456,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/initsystemFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2200,6 +2488,38 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/kernelFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
+                                    }
+                                }
+                            },
+                            {
+                                "title": "Keyboard",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "type": {
+                                        "const": "keyboard",
+                                        "description": "List (connected) keyboards"
+                                    },
+                                    "key": {
+                                        "$ref": "#/$defs/key"
+                                    },
+                                    "keyColor": {
+                                        "$ref": "#/$defs/keyColor"
+                                    },
+                                    "keyIcon": {
+                                        "$ref": "#/$defs/keyIcon"
+                                    },
+                                    "keyWidth": {
+                                        "$ref": "#/$defs/keyWidth"
+                                    },
+                                    "format": {
+                                        "$ref": "#/$defs/memoryFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2229,6 +2549,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/lmFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2317,6 +2640,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/localipFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2361,6 +2687,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/loadavgFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2390,6 +2719,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/localeFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2419,6 +2751,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/mediaFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2451,6 +2786,38 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/memoryFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
+                                    }
+                                }
+                            },
+                            {
+                                "title": "Mouse",
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                    "type": {
+                                        "const": "mouse",
+                                        "description": "List connected mouses"
+                                    },
+                                    "key": {
+                                        "$ref": "#/$defs/key"
+                                    },
+                                    "keyColor": {
+                                        "$ref": "#/$defs/keyColor"
+                                    },
+                                    "keyIcon": {
+                                        "$ref": "#/$defs/keyIcon"
+                                    },
+                                    "keyWidth": {
+                                        "$ref": "#/$defs/keyWidth"
+                                    },
+                                    "format": {
+                                        "$ref": "#/$defs/memoryFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2480,6 +2847,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/monitorFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2529,6 +2899,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/netioFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2558,6 +2931,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/openclFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2596,6 +2972,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/openglFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2625,6 +3004,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/osFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2678,6 +3060,11 @@
                                         },
                                         "default": ["winget"]
                                     },
+                                    "combined": {
+                                        "description": "Whether to combine related package managers into single counts (e.g., nix-system + nix-user = nix)",
+                                        "type": "boolean",
+                                        "default": false
+                                    },
                                     "key": {
                                         "$ref": "#/$defs/key"
                                     },
@@ -2695,6 +3082,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/packagesFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2731,6 +3121,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/physicaldiskFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2760,6 +3153,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/physicalmemoryFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2789,6 +3185,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/playerFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2818,6 +3217,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/poweradapterFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2847,6 +3249,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/processesFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2893,6 +3298,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/publicipFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2919,6 +3327,9 @@
                                         "type": "integer",
                                         "minimum": 0,
                                         "default": 0
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2948,6 +3359,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/shellFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -2990,6 +3404,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/soundFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3027,6 +3444,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/swapFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3056,6 +3476,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/terminalFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3085,6 +3508,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/terminalfontFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3114,6 +3540,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/terminalsizeFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3143,6 +3572,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/terminalthemeFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3172,6 +3604,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/themeFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3225,6 +3660,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/titleFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3254,6 +3692,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/tpmFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3293,6 +3734,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/usersFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3322,6 +3766,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/uptimeFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3351,6 +3798,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/versionFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3380,6 +3830,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/vulkanFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3409,6 +3862,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/wallpaperFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3453,6 +3909,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/weatherFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3482,6 +3941,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/wifiFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3516,6 +3978,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/wmFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3545,6 +4010,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/wmthemeFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             },
@@ -3577,6 +4045,9 @@
                                     },
                                     "format": {
                                         "$ref": "#/$defs/zpoolFormat"
+                                    },
+                                    "condition": {
+                                        "$ref": "#/$defs/conditions"
                                     }
                                 }
                             }

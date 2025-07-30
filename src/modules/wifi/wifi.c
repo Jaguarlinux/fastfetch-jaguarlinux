@@ -74,7 +74,10 @@ void ffPrintWifi(FFWifiOptions* options)
                         ffStrbufAppend(&buffer, &item->conn.protocol);
                     }
                     if (bandStr[0])
-                        ffStrbufAppendF(&buffer, " - %s GHz", bandStr);
+                    {
+                        ffStrbufAppendF(&buffer, " - %s%sGHz", bandStr,
+                            instance.config.display.freqSpaceBeforeUnit == FF_SPACE_BEFORE_UNIT_NEVER ? "" : " ");
+                    }
                     if(item->conn.security.length)
                     {
                         ffStrbufAppendS(&buffer, " - ");
@@ -153,7 +156,7 @@ void ffParseWifiJsonObject(FFWifiOptions* options, yyjson_val* module)
     yyjson_obj_foreach(module, idx, max, key_, val)
     {
         const char* key = yyjson_get_str(key_);
-        if(ffStrEqualsIgnCase(key, "type"))
+        if(ffStrEqualsIgnCase(key, "type") || ffStrEqualsIgnCase(key, "condition"))
             continue;
 
         if (ffJsonConfigParseModuleArgs(key, val, &options->moduleArgs))

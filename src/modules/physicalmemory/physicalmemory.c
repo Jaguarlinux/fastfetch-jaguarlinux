@@ -1,7 +1,7 @@
 #include "common/printing.h"
 #include "common/jsonconfig.h"
-#include "common/parsing.h"
 #include "common/percent.h"
+#include "common/size.h"
 #include "detection/physicalmemory/physicalmemory.h"
 #include "modules/physicalmemory/physicalmemory.h"
 #include "util/stringUtils.h"
@@ -32,7 +32,7 @@ void ffPrintPhysicalMemory(FFPhysicalMemoryOptions* options)
     {
         ++i;
         ffStrbufClear(&prettySize);
-        ffParseSize(device->size, &prettySize);
+        ffSizeAppendNum(device->size, &prettySize);
 
         if (options->moduleArgs.outputFormat.length == 0)
         {
@@ -97,7 +97,7 @@ void ffParsePhysicalMemoryJsonObject(FFPhysicalMemoryOptions* options, yyjson_va
     yyjson_obj_foreach(module, idx, max, key_, val)
     {
         const char* key = yyjson_get_str(key_);
-        if(ffStrEqualsIgnCase(key, "type"))
+        if(ffStrEqualsIgnCase(key, "type") || ffStrEqualsIgnCase(key, "condition"))
             continue;
 
         if (ffJsonConfigParseModuleArgs(key, val, &options->moduleArgs))

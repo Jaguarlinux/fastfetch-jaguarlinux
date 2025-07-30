@@ -71,7 +71,7 @@ void ffParseEditorJsonObject(FFEditorOptions* options, yyjson_val* module)
     yyjson_obj_foreach(module, idx, max, key_, val)
     {
         const char* key = yyjson_get_str(key_);
-        if(ffStrEqualsIgnCase(key, "type"))
+        if(ffStrEqualsIgnCase(key, "type") || ffStrEqualsIgnCase(key, "condition"))
             continue;
 
         if (ffJsonConfigParseModuleArgs(key, val, &options->moduleArgs))
@@ -130,7 +130,7 @@ static FFModuleBaseInfo ffModuleInfo = {
         {"Type (Visual / Editor)", "type"},
         {"Name", "name"},
         {"Exe name of real path", "exe-name"},
-        {"Full path of real path", "full-path"},
+        {"Full path of real path", "path"},
         {"Version", "version"},
     }))
 };

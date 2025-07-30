@@ -17,19 +17,37 @@ void ffPrintPackages(FFPackagesOptions* options)
         return;
     }
 
+    uint32_t nixAll = counts.nixDefault + counts.nixSystem + counts.nixUser;
+    uint32_t flatpakAll = counts.flatpakSystem + counts.flatpakUser;
+    uint32_t brewAll = counts.brew + counts.brewCask;
+    uint32_t guixAll = counts.guixSystem + counts.guixUser + counts.guixHome;
+    uint32_t hpkgAll = counts.hpkgSystem + counts.hpkgUser;
+    uint32_t amAll = counts.amSystem + counts.amUser;
+    uint32_t scoopAll = counts.scoopUser + counts.scoopGlobal;
+
     if(options->moduleArgs.outputFormat.length == 0)
     {
         ffPrintLogoAndKey(FF_PACKAGES_MODULE_NAME, 0, &options->moduleArgs, FF_PRINT_TYPE_DEFAULT);
 
-        #define FF_PRINT_PACKAGE_NAME(var, name) \
+        #define FF_PRINT_PACKAGE_NAME(var, name) {\
             if(counts.var > 0) \
             { \
                 printf("%u (%s)", counts.var, (name)); \
                 if((all -= counts.var) > 0) \
                     fputs(", ", stdout); \
-            };
+            } \
+        }
 
         #define FF_PRINT_PACKAGE(name) FF_PRINT_PACKAGE_NAME(name, #name)
+
+        #define FF_PRINT_PACKAGE_ALL(name) {\
+            if(name ## All > 0) \
+            { \
+                printf("%u (%s)", name ## All, #name); \
+                if((all -= name ## All) > 0) \
+                    fputs(", ", stdout); \
+            } \
+        }
 
         uint32_t all = counts.all;
         if(counts.pacman > 0)
@@ -45,38 +63,87 @@ void ffPrintPackages(FFPackagesOptions* options)
         FF_PRINT_PACKAGE(emerge)
         FF_PRINT_PACKAGE(eopkg)
         FF_PRINT_PACKAGE(xbps)
-        FF_PRINT_PACKAGE_NAME(nixSystem, "nix-system")
-        FF_PRINT_PACKAGE_NAME(nixUser, "nix-user")
-        FF_PRINT_PACKAGE_NAME(nixDefault, "nix-default")
+        if (options->combined)
+        {
+            FF_PRINT_PACKAGE_ALL(nix);
+        }
+        else
+        {
+            FF_PRINT_PACKAGE_NAME(nixSystem, "nix-system")
+            FF_PRINT_PACKAGE_NAME(nixUser, "nix-user")
+            FF_PRINT_PACKAGE_NAME(nixDefault, "nix-default")
+        }
         FF_PRINT_PACKAGE(apk)
         FF_PRINT_PACKAGE(pkg)
         FF_PRINT_PACKAGE(pkgsrc)
-        FF_PRINT_PACKAGE_NAME(hpkgSystem, counts.hpkgUser ? "hpkg-system" : "hpkg")
-        FF_PRINT_PACKAGE_NAME(hpkgUser, "hpkg-user")
-        FF_PRINT_PACKAGE_NAME(flatpakSystem, counts.flatpakUser ? "flatpak-system" : "flatpak")
-        FF_PRINT_PACKAGE_NAME(flatpakUser, "flatpak-user")
+        if (options->combined)
+        {
+            FF_PRINT_PACKAGE_ALL(hpkg)
+        }
+        else
+        {
+            FF_PRINT_PACKAGE_NAME(hpkgSystem, counts.hpkgUser ? "hpkg-system" : "hpkg")
+            FF_PRINT_PACKAGE_NAME(hpkgUser, "hpkg-user")
+        }
+        if (options->combined)
+        {
+            FF_PRINT_PACKAGE_ALL(flatpak);
+        }
+        else
+        {
+            FF_PRINT_PACKAGE_NAME(flatpakSystem, counts.flatpakUser ? "flatpak-system" : "flatpak")
+            FF_PRINT_PACKAGE_NAME(flatpakUser, "flatpak-user")
+        }
         FF_PRINT_PACKAGE(snap)
-        FF_PRINT_PACKAGE(brew)
-        FF_PRINT_PACKAGE_NAME(brewCask, "brew-cask")
+        if (options->combined)
+        {
+            FF_PRINT_PACKAGE_ALL(brew);
+        }
+        else
+        {
+            FF_PRINT_PACKAGE_NAME(brew, "brew")
+            FF_PRINT_PACKAGE_NAME(brewCask, "brew-cask")
+        }
         FF_PRINT_PACKAGE(macports)
-        FF_PRINT_PACKAGE(scoop)
+        if (options->combined)
+        {
+            FF_PRINT_PACKAGE_ALL(scoop);
+        }
+        else
+        {
+            FF_PRINT_PACKAGE_NAME(scoopUser, counts.scoopGlobal ? "scoop-user" : "scoop")
+            FF_PRINT_PACKAGE_NAME(scoopGlobal, "scoop-global")
+        }
         FF_PRINT_PACKAGE(choco)
         FF_PRINT_PACKAGE(pkgtool)
         FF_PRINT_PACKAGE(paludis)
         FF_PRINT_PACKAGE(winget)
         FF_PRINT_PACKAGE(opkg)
-        FF_PRINT_PACKAGE_NAME(amSystem, "am")
-        FF_PRINT_PACKAGE_NAME(amUser, "appman")
+        if (options->combined)
+        {
+            FF_PRINT_PACKAGE_ALL(am);
+        }
+        else
+        {
+            FF_PRINT_PACKAGE_NAME(amSystem, "am")
+            FF_PRINT_PACKAGE_NAME(amUser, "appman")
+        }
         FF_PRINT_PACKAGE(sorcery)
         FF_PRINT_PACKAGE(lpkg)
         FF_PRINT_PACKAGE(lpkgbuild)
-        FF_PRINT_PACKAGE_NAME(guixSystem, "guix-system")
-        FF_PRINT_PACKAGE_NAME(guixUser, "guix-user")
-        FF_PRINT_PACKAGE_NAME(guixHome, "guix-home")
+        if (options->combined)
+        {
+            FF_PRINT_PACKAGE_ALL(guix);
+        }
+        else
+        {
+            FF_PRINT_PACKAGE_NAME(guixSystem, "guix-system")
+            FF_PRINT_PACKAGE_NAME(guixUser, "guix-user")
+            FF_PRINT_PACKAGE_NAME(guixHome, "guix-home")
+        }
         FF_PRINT_PACKAGE(linglong)
         FF_PRINT_PACKAGE(pacstall)
         FF_PRINT_PACKAGE(mport)
-        FF_PRINT_PACKAGE(qi)
         FF_PRINT_PACKAGE(pisi)
         FF_PRINT_PACKAGE(soar)
 
@@ -84,11 +151,6 @@ void ffPrintPackages(FFPackagesOptions* options)
     }
     else
     {
-        uint32_t nixAll = counts.nixDefault + counts.nixSystem + counts.nixUser;
-        uint32_t flatpakAll = counts.flatpakSystem + counts.flatpakUser;
-        uint32_t brewAll = counts.brew + counts.brewCask;
-        uint32_t guixAll = counts.guixSystem + counts.guixUser + counts.guixHome;
-        uint32_t hpkgAll = counts.hpkgSystem + counts.hpkgUser;
         FF_PRINT_FORMAT_CHECKED(FF_PACKAGES_MODULE_NAME, 0, &options->moduleArgs, FF_PRINT_TYPE_DEFAULT, ((FFformatarg[]){
             FF_FORMAT_ARG(counts.all, "all"),
             FF_FORMAT_ARG(counts.pacman, "pacman"),
@@ -109,7 +171,8 @@ void ffPrintPackages(FFPackagesOptions* options)
             FF_FORMAT_ARG(counts.brew, "brew"),
             FF_FORMAT_ARG(counts.brewCask, "brew-cask"),
             FF_FORMAT_ARG(counts.macports, "macports"),
-            FF_FORMAT_ARG(counts.scoop, "scoop"),
+            FF_FORMAT_ARG(counts.scoopUser, "scoop-user"),
+            FF_FORMAT_ARG(counts.scoopGlobal, "scoop-global"),
             FF_FORMAT_ARG(counts.choco, "choco"),
             FF_FORMAT_ARG(counts.pkgtool, "pkgtool"),
             FF_FORMAT_ARG(counts.paludis, "paludis"),
@@ -125,7 +188,6 @@ void ffPrintPackages(FFPackagesOptions* options)
             FF_FORMAT_ARG(counts.linglong, "linglong"),
             FF_FORMAT_ARG(counts.pacstall, "pacstall"),
             FF_FORMAT_ARG(counts.mport, "mport"),
-            FF_FORMAT_ARG(counts.qi, "qi"),
             FF_FORMAT_ARG(counts.amUser, "am-user"),
             FF_FORMAT_ARG(counts.pkgsrc, "pkgsrc"),
             FF_FORMAT_ARG(counts.hpkgSystem, "hpkg-system"),
@@ -215,9 +277,6 @@ bool ffParsePackagesCommandOptions(FFPackagesOptions* options, const char* key, 
                     FF_TEST_PACKAGE_NAME(PKGTOOL)
                     FF_TEST_PACKAGE_NAME(PKGSRC)
                     break;
-                case 'Q': if (false);
-                    FF_TEST_PACKAGE_NAME(QI)
-                    break;
                 case 'R': if (false);
                     FF_TEST_PACKAGE_NAME(RPM)
                     break;
@@ -248,6 +307,12 @@ bool ffParsePackagesCommandOptions(FFPackagesOptions* options, const char* key, 
         return true;
     }
 
+    if (ffStrEqualsIgnCase(subKey, "combined"))
+    {
+        options->combined = ffOptionParseBoolean(value);
+        return true;
+    }
+
     return false;
 }
 
@@ -258,7 +323,7 @@ void ffParsePackagesJsonObject(FFPackagesOptions* options, yyjson_val* module)
     yyjson_obj_foreach(module, idx, max, key_, val)
     {
         const char* key = yyjson_get_str(key_);
-        if (ffStrEqualsIgnCase(key, "type"))
+        if (ffStrEqualsIgnCase(key, "type") || ffStrEqualsIgnCase(key, "condition"))
             continue;
 
         if (ffJsonConfigParseModuleArgs(key, val, &options->moduleArgs))
@@ -335,9 +400,6 @@ void ffParsePackagesJsonObject(FFPackagesOptions* options, yyjson_val* module)
                             FF_TEST_PACKAGE_NAME(PKGTOOL)
                             FF_TEST_PACKAGE_NAME(PKGSRC)
                             break;
-                        case 'Q': if (false);
-                            FF_TEST_PACKAGE_NAME(QI)
-                            break;
                         case 'R': if (false);
                             FF_TEST_PACKAGE_NAME(RPM)
                             break;
@@ -358,6 +420,12 @@ void ffParsePackagesJsonObject(FFPackagesOptions* options, yyjson_val* module)
                 }
                 continue;
             }
+        }
+
+        if (ffStrEqualsIgnCase(key, "combined"))
+        {
+            options->combined = yyjson_get_bool(val);
+            continue;
         }
 
         ffPrintError(FF_PACKAGES_MODULE_NAME, 0, &options->moduleArgs, FF_PRINT_TYPE_DEFAULT, "Unknown JSON key %s", key);
@@ -400,7 +468,6 @@ void ffGeneratePackagesJsonConfig(FFPackagesOptions* options, yyjson_mut_doc* do
         FF_TEST_PACKAGE_NAME(PKG)
         FF_TEST_PACKAGE_NAME(PKGTOOL)
         FF_TEST_PACKAGE_NAME(PKGSRC)
-        FF_TEST_PACKAGE_NAME(QI)
         FF_TEST_PACKAGE_NAME(RPM)
         FF_TEST_PACKAGE_NAME(SCOOP)
         FF_TEST_PACKAGE_NAME(SNAP)
@@ -410,6 +477,9 @@ void ffGeneratePackagesJsonConfig(FFPackagesOptions* options, yyjson_mut_doc* do
         FF_TEST_PACKAGE_NAME(XBPS)
         #undef FF_TEST_PACKAGE_NAME
     }
+
+    if (options->combined != defaultOptions.combined)
+        yyjson_mut_obj_add_bool(doc, module, "combined", options->combined);
 }
 
 void ffGeneratePackagesJsonResult(FF_MAYBE_UNUSED FFPackagesOptions* options, yyjson_mut_doc* doc, yyjson_mut_val* module)
@@ -459,10 +529,10 @@ void ffGeneratePackagesJsonResult(FF_MAYBE_UNUSED FFPackagesOptions* options, yy
     FF_APPEND_PACKAGE_COUNT(pkg)
     FF_APPEND_PACKAGE_COUNT(pkgtool)
     FF_APPEND_PACKAGE_COUNT(pkgsrc)
-    FF_APPEND_PACKAGE_COUNT(qi)
     FF_APPEND_PACKAGE_COUNT(macports)
     FF_APPEND_PACKAGE_COUNT(rpm)
-    FF_APPEND_PACKAGE_COUNT(scoop)
+    FF_APPEND_PACKAGE_COUNT(scoopUser)
+    FF_APPEND_PACKAGE_COUNT(scoopGlobal)
     FF_APPEND_PACKAGE_COUNT(snap)
     FF_APPEND_PACKAGE_COUNT(soar)
     FF_APPEND_PACKAGE_COUNT(sorcery)
@@ -499,7 +569,8 @@ static FFModuleBaseInfo ffModuleInfo = {
         {"Number of brew packages", "brew"},
         {"Number of brew-cask packages", "brew-cask"},
         {"Number of macports packages", "macports"},
-        {"Number of scoop packages", "scoop"},
+        {"Number of scoop-user packages", "scoop-user"},
+        {"Number of scoop-global packages", "scoop-global"},
         {"Number of choco packages", "choco"},
         {"Number of pkgtool packages", "pkgtool"},
         {"Number of paludis packages", "paludis"},
@@ -515,7 +586,6 @@ static FFModuleBaseInfo ffModuleInfo = {
         {"Number of linglong packages", "linglong"},
         {"Number of pacstall packages", "pacstall"},
         {"Number of mport packages", "mport"},
-        {"Number of qi packages", "qi"},
         {"Number of am-user (aka appman) packages", "am-user"},
         {"Number of pkgsrc packages", "pkgsrc"},
         {"Number of hpkg-system packages", "hpkg-system"},
@@ -536,6 +606,7 @@ void ffInitPackagesOptions(FFPackagesOptions* options)
     ffOptionInitModuleArg(&options->moduleArgs, "󰏖");
 
     options->disabled = FF_PACKAGES_DISABLE_LIST;
+    options->combined = false;
 }
 
 void ffDestroyPackagesOptions(FFPackagesOptions* options)
