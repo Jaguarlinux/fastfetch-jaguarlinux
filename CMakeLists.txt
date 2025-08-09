@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12.0) # target_link_libraries with OBJECT libs & project homepage url
 
 project(fastfetch
-    VERSION 2.48.1
+    VERSION 2.49.0
     LANGUAGES C
     DESCRIPTION "Fast neofetch-like system information tool"
     HOMEPAGE_URL "https://github.com/fastfetch-cli/fastfetch"
@@ -474,7 +474,6 @@ set(LIBFASTFETCH_SRC
     src/modules/wmtheme/wmtheme.c
     src/modules/zpool/zpool.c
     src/options/display.c
-    src/options/modules.c
     src/options/logo.c
     src/options/general.c
     src/util/edidHelper.c
@@ -896,7 +895,7 @@ elseif(OpenBSD)
 elseif(APPLE)
     list(APPEND LIBFASTFETCH_SRC
         src/common/io/io_unix.c
-        src/common/netif/netif_bsd.c
+        src/common/netif/netif_apple.c
         src/common/networking/networking_linux.c
         src/common/processing_linux.c
         src/common/sysctl.c
@@ -1042,7 +1041,7 @@ elseif(SunOS)
     list(APPEND LIBFASTFETCH_SRC
         src/common/dbus.c
         src/common/io/io_unix.c
-        src/common/netif/netif_bsd.c
+        src/common/netif/netif_apple.c
         src/common/networking/networking_linux.c
         src/common/processing_linux.c
         src/detection/battery/battery_nosupport.c
