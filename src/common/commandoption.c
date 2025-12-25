@@ -10,44 +10,96 @@
 #include <ctype.h>
 #include <inttypes.h>
 
+bool ffParseModuleOptions(const char* key, const char* value)
+{
+    if (!ffStrStartsWith(key, "--") || !ffCharIsEnglishAlphabet(key[2])) return false;
+    if (value && !*value) value = NULL;
+    for (FFModuleBaseInfo** modules = ffModuleInfos[toupper(key[2]) - 'A']; *modules; ++modules)
+    {
+        FFModuleBaseInfo* baseInfo = *modules;
+        const char* subKey = ffOptionTestPrefix(key, baseInfo->name);
+        if (subKey != NULL)
+        {
+            if (subKey[0] == '\0' || subKey[0] == '-') // Key is exactly the module name or has a leading '-'
+            {
+                fprintf(stderr, "Error: unknown module key %s\n", key);
+                exit(477);
+            }
+
+            FF_STRBUF_AUTO_DESTROY moduleName = ffStrbufCreateS(baseInfo->name);
+            ffStrbufLowerCase(&moduleName);
+
+            FF_STRBUF_AUTO_DESTROY jsonKey = ffStrbufCreate();
+            bool flag = false;
+            for (const char* p = subKey; *p; ++p)
+            {
+                if (*p == '-')
+                {
+                    if (flag)
+                    {
+                        fprintf(stderr, "Error: invalid double `-` in module key %s\n", key);
+                        exit(477);
+                    }
+                    flag = true;
+                }
+                else
+                {
+                    if (!isalpha((unsigned char)*p) && !isdigit((unsigned char)*p))
+                    {
+                        fprintf(stderr, "Error: invalid character `%c` in module key %s\n", *p, key);
+                        exit(477);
+                    }
+
+                    if (flag)
+                    {
+                        flag = false;
+                        ffStrbufAppendC(&jsonKey, (char) toupper((unsigned char) *p));
+                    }
+                    else
+                        ffStrbufAppendC(&jsonKey, *p);
+                }
+            }
+            fprintf(stderr, "Error: Unsupported module option: %s\n", key);
+            fputs("       Support of module options has been removed. Please add the flag to the JSON config instead.\n", stderr);
+            fprintf(stderr, "       Example (demonstration only): `{ \"modules\": [ { \"type\": \"%s\", \"%s\": %s%s%s } ] }`\n", moduleName.chars, jsonKey.chars, value ? "\"" : "", value ? value : "true", value ? "\"" : "");
+            fputs("       See <https://github.com/fastfetch-cli/fastfetch/wiki/Configuration> for more information.\n", stderr);
+            exit(477);
+        }
+    }
+    return false;
+}
+
 void ffPrepareCommandOption(FFdata* data)
 {
-    //If we don't have a custom structure, use the default one
-    if(data->structure.length == 0)
-        ffStrbufAppendS(&data->structure, FASTFETCH_DATATEXT_STRUCTURE); // Cannot use `ffStrbufSetStatic` here because we will modify the string
-
-    if(ffStrbufContainIgnCaseS(&data->structure, FF_CPUUSAGE_MODULE_NAME))
+    if(ffStrbufSeparatedContainIgnCaseS(&data->structure, FF_CPUUSAGE_MODULE_NAME, ':'))
         ffPrepareCPUUsage();
 
-    if(ffStrbufContainIgnCaseS(&data->structure, FF_DISKIO_MODULE_NAME))
+    if(ffStrbufSeparatedContainIgnCaseS(&data->structure, FF_DISKIO_MODULE_NAME, ':'))
     {
         __attribute__((__cleanup__(ffDestroyDiskIOOptions))) FFDiskIOOptions options;
         ffInitDiskIOOptions(&options);
         ffPrepareDiskIO(&options);
     }
 
-    if(ffStrbufContainIgnCaseS(&data->structure, FF_NETIO_MODULE_NAME))
+    if(ffStrbufSeparatedContainIgnCaseS(&data->structure, FF_NETIO_MODULE_NAME, ':'))
     {
         __attribute__((__cleanup__(ffDestroyNetIOOptions))) FFNetIOOptions options;
         ffInitNetIOOptions(&options);
         ffPrepareNetIO(&options);
     }
 
-    if(instance.config.general.multithreading)
+    if(ffStrbufSeparatedContainIgnCaseS(&data->structure, FF_PUBLICIP_MODULE_NAME, ':'))
     {
-        if(ffStrbufContainIgnCaseS(&data->structure, FF_PUBLICIP_MODULE_NAME))
-        {
-            __attribute__((__cleanup__(ffDestroyPublicIpOptions))) FFPublicIPOptions options;
-            ffInitPublicIpOptions(&options);
-            ffPreparePublicIp(&options);
-        }
+        __attribute__((__cleanup__(ffDestroyPublicIpOptions))) FFPublicIPOptions options;
+        ffInitPublicIpOptions(&options);
+        ffPreparePublicIp(&options);
+    }
 
-        if(ffStrbufContainIgnCaseS(&data->structure, FF_WEATHER_MODULE_NAME))
-        {
-            __attribute__((__cleanup__(ffDestroyWeatherOptions))) FFWeatherOptions options;
-            ffInitWeatherOptions(&options);
-            ffPrepareWeather(&options);
-        }
+    if(ffStrbufSeparatedContainIgnCaseS(&data->structure, FF_WEATHER_MODULE_NAME, ':'))
+    {
+        __attribute__((__cleanup__(ffDestroyWeatherOptions))) FFWeatherOptions options;
+        ffInitWeatherOptions(&options);
+        ffPrepareWeather(&options);
     }
 }
 
@@ -57,18 +109,26 @@ static void genJsonConfig(FFModuleBaseInfo* baseInfo, void* options, yyjson_mut_
     if (!modules)
         modules = yyjson_mut_obj_add_arr(doc, doc->root, "modules");
 
-    yyjson_mut_val* module = yyjson_mut_obj(doc);
     FF_STRBUF_AUTO_DESTROY type = ffStrbufCreateS(baseInfo->name);
     ffStrbufLowerCase(&type);
-    yyjson_mut_obj_add_strbuf(doc, module, "type", &type);
 
-    if (baseInfo->generateJsonConfig)
-        baseInfo->generateJsonConfig(options, doc, module);
+    if (instance.state.fullConfig)
+    {
+        yyjson_mut_val* module = yyjson_mut_obj(doc);
+        yyjson_mut_obj_add_strbuf(doc, module, "type", &type);
 
-    if (yyjson_mut_obj_size(module) > 1)
-        yyjson_mut_arr_add_val(modules, module);
+        if (baseInfo->generateJsonConfig)
+            baseInfo->generateJsonConfig(options, doc, module);
+
+        if (yyjson_mut_obj_size(module) > 1)
+            yyjson_mut_arr_add_val(modules, module);
+        else
+            yyjson_mut_arr_add_strbuf(doc, modules, &type);
+    }
     else
+    {
         yyjson_mut_arr_add_strbuf(doc, modules, &type);
+    }
 }
 
 static void genJsonResult(FFModuleBaseInfo* baseInfo, void* options, yyjson_mut_doc* doc)

@@ -1,17 +1,339 @@
-# WIP
+# 2.56.1
+
+Features:
+* Improves compatibility with KDE Plasma 6.5 (#2093, Display)
+* Adds a `tempSensor` option to specify the sensor name used for CPU temperature detection (CPU)
+    * Example: `{ "type": "cpu", "tempSensor": "hwmon0" /* Use /sys/class/hwmon/hwmon0 for temperature detection */ }`
+* Refines Memory usage detection on macOS to match Activity Monitor more closely (Memory, macOS)
+* Minor optimizations
+
+Bugfixes:
+* Fixes cache line size detection (CPU, macOS)
+
+Logos:
+* Removes Opak
+* Updates GXDE
+
+# 2.56.0
+
+Features:
+* Enhances config file loading. `--config` and `-c` with relative path now also searches paths defined in `fastfetch --list-config-paths` (typically `~/.config/fastfetch/`)
+    * This allows users to use `fastfetch -c my-config` without needing to specify the full path.
+* Adds NUMA node count detection (CPU)
+    * Exposed via `{numa-nodes}` in custom format
+    * Supported on Linux, FreeBSD and Windows
+* Supports the newest Alacritty config format (#2070, TerminalFont)
+* Detects driver specific info for Zhaoxin GPUs (GPU, Linux)
+* Detects Android OEM UI for certain OSes (DE, Android)
+* Improves users detection on Linux (#2064, Users, Linux)
+    * Adds systemd fallback when utmp is unavailable
+    * Fixes resource leaks
+    * Always reports the newest session info
+* Adds kiss package manager support (#2072, Packages, Linux)
+* Reports `sshd` if `$SSH_TTY` is not available (Terminal)
+* Zpool module rewrite (#2051, Zpool)
+    * Adds new Zpool properties: allocated, guid, readOnly
+    * Zpool module now uses runtime lookup for properties to ensure portability
+    * Adds NetBSD (requires `sudo`) and macOS support
+* Adds `splitLines` option for Command module, which splits the output into sub modules, each containing one line of the output (Command)
+```
+* Command output:
+Line 1
+Line 2
+Line 3
+
+* Old behavior:
+Command: Line 1
+Line 2
+Line 3
+
+* With `"splitLines": true`:
+Command 1: Line 1
+Command 2: Line 2
+Command 3: Line 3
+```
+
+Bugfixes:
+* Fixes {m,o}ksh version detection on Linux (Shell)
+* Fixes Alacritty config parsing for TOML format (#2070, TerminalFont)
+* Improves builtin logo printing for piping and buffering (#2065, Logo)
+* Uses absolute path when detecting shell and terminal version if available (#2067, TerminalShell)
+
+Logos:
+* Updates Codex Linux logo (#2071)
+* Adds OS/2 Warp logo (#2062)
+* Adds Amiga logo (#2061)
+
+# 2.55.1
+
+Bugfixes:
+* Fix parallel command execution breaks randomly (#2056 / #2058, Command)
+    * Regression from v2.55.0
+* Fix `dylib` searching path on macOS (macOS)
+    * Regression from v2.55.0
+* Fix an uninitialized field (#2057, Display)
+
+# 2.55.0
 
 Changes:
-* Percent bar config `display.bar.*` options have been replaced with a more organized, nested object structure.
+* Commands are now executed in parallel by default to improve performance (#2045, Command)
+    * This behavior can be disabled in the config file with `"parallel": false` if it causes problems with certain scripts
+* Folder/filesystem hiding is moved to the detection stage; hidden entries are no longer probed, improving performance (#2043, Disk)
+
+Features:
+* Adds `command.parallel` and `command.useStdErr` config options (Command)
+    * `parallel`: set to `false` to disable parallel execution (see Changes above)
+    * `useStdErr`: set to `true` to use stderr output instead of stdout
+* Adds the command-line flag `--dynamic-interval <interval-in-ms>` to enable dynamic output auto-refresh (#2041)
+    * Due to internal limitations, some modules do not support dynamic updates (notably Display and Media)
+* Adds support for using the current playing media's cover art as a logo source (Media / Logo)
+    * Usage: `"logo": { "type": "<image-protocol>", "source": "media-cover" }` in JSON config; or `--<image-protocol> media-cover` in command line
+    * Supports local sources only
+* Adds native GPU detection support on OpenBSD and NetBSD (instead of depending on `libpciaccess`) (GPU)
+    * No functional changes
+    * Root privileges are required to access PCI config space on OpenBSD (as always)
+* Adds GPU detection support on GNU/Hurd (GPU)
+    * Requires building with `libpciaccess`
+* Shows Debian point release on Raspberry Pi OS (#2032, OS, Linux)
+* Adds `Brush` shell version detection (Shell)
+* Improves Mac family detection via prefix matching (Host)
+
+Bugfixes:
+* Ignores `run-parts` during terminal/shell detection (#2048, Terminal / Shell, Linux)
+* Fixes fish version detection when `LC_ALL` is set (#2014, Shell, Linux)
+* Hides the module when no desktop icons are found (#2023, Icons, Windows)
+* Skips auxiliary display controllers to prevent the module from reporting duplicate entries (#2034, GPU, Linux)
+* Refines Apple rpath handling; fixes building for the Homebrew version on macOS (#1998, CMake)
+
+Logos:
+* Adds Vincent OS and MacaroniOS
+
+# 2.54.0
+
+Windows binaries in Release page are now signed by SignPath.
+
+Changes:
+* Moves macOS and Windows design language detection from the DE module to the Theme module
+
+Features:
+* Adds `--json` and `-j` command line flags as a shortcut for `--format json`
+* Various improvements to the OS module (OS)
+    * Displays point releases for Debian
+    * Displays code names for Ubuntu
+    * Displays build ID for macOS
+    * Displays code names for Windows (previously shown in the Kernel module)
+* Adds basic support for Wine (Windows)
+* Adds basic support for hppa and sh architectures (CPU, Linux)
+* Improves T-Head SoC name detection from the device tree (#1997, CPU, Linux)
+* Supports glob patterns in `Disk.hideFolders` (Disk)
+    * For example, `/boot/*` will match both `/boot/efi` and `/boot/firmware`
+* Adds brightness-level detection for external monitor support on Intel macOS (Brightness, macOS)
+* Adds configurable spacing between icon and text in keys
+    * `display.key.type: "both-N"` where N is `0-4`
+    * Useful for non-monospaced Nerd Fonts
+* Adds detection support for modern Samsung Exynos SoCs (CPU, Android)
+* Adds a new CMake option `-DENABLE_WORDEXP=<ON|OFF>` to enable or disable using `wordexp(3)` for acquiring logo file paths (`logo.source`)
+    * Enabled by default for compatibility
+    * Disabling this option reverts to using `glob(3)`, which is less functional but more secure
+
+Bugfixes:
+* Avoids integer overflow when calculating swap size (#1988, Swap, Windows)
+* Trims whitespace from full user name (Title, macOS)
+* Fixes default font size for Ghostty (#1986, TerminalFont, Linux)
+* Works around an issue that could report impossibly high memory usage in rare cases (#1988, Memory, Linux)
+* Fixes incorrect glibc dependency in polyfilled DEB packages (#1983, Linux)
+* Fixes corrupted binaries in polyfilled RPM packages (#1990, Linux)
+* Fixes crashes on ancient Android kernels (#1993, Disk, Android)
+* Fixes incorrect usage of `glob(3)` (OpenBSD)
+* Prefers resolutions reported by RandR mode info, fixing incorrect resolutions on XFCE when DPI scaling is enabled (Display, Linux)
+* Various code cleanups and minor fixes
+
+Logos:
+* Adds secureblue, PrismLinux, EmperorOS and Zraxyl
+* Updates T2
+
+# 2.53.0
+
+Changes:
+* JSON property `length` in `Separator` module has been renamed to `times` for clarity (Separator)
+
+Features:
+* Adds IPv6 type selection (#1459, LocalIP)
+    * For example: `{ "type": "localip", "showIpv6": "ula" /* Show ULA only */ }`
+* Adds more ARM CPU part IDs (CPU, Linux)
+* Improves Ghostty font config parsing with fallback font detection (#1967, TerminalFont)
+* Replaces statx(2) call with syscall(2) for better compatibility (Disk, Linux)
+* Allows array input for disk folder and filesystem options (Disk)
+    * For example: `{ "type": "disk", "folders": ["/", "/home"] }`
+* Adds support for ignoring input devices by name prefix (#1950, Keyboard / Mouse / Gamepad)
+    * For example: `{ "type": "keyboard", "ignores": ["Apple ", "Corsair "] }`
+* Adds support for (B)SSID detection on macOS Tahoe (Wifi, macOS)
+    * Please don't expect it to work on later macOS versions
+* Improves Ubuntu flavor detection (#1975, OS, Linux)
+* Refines ARMv8.4-A detection to require LSE2 (CPU, Windows)
+* Detects the latest Dimensity & Snapdragon SoC names (CPU, Android)
+
+Bugfixes:
+* Handles zero temperature data (#1960, CPU, Windows)
+* Fixes `dlopen libzfs.so failed` error on Proxmox 9 (#1973, Zpool, Linux)
+
+Logos:
+* Removes Starry Linux
+* Adds TempleOS
+* Updates ObsidianOS
+
+# 2.52.0
+
+Changes:
+* New optional build dependencies on Android
+    * main: chafa dbus glib imagemagick libelf libxcb libxrandr pulseaudio zlib
+    * x11: dconf (Optional)
+* Dependency on `libxfconf` is removed. XFCE related detection now uses `libdbus` instead (Linux)
+* The default format of `Display` module is updated to `{width}x{height} @ {scale-factor}x in {inch}", {refresh-rate} Hz`
+    * Replaced scaled resolution with scale factor for shorter texts and avoiding potential confusion.
+
+Bugfixes:
+* Fixes linking on 32-bit Android (#1939)
+* Skips network interfaces without IPs unless MAC address is requested (#1949, LocalIP)
+* Fixes unexpected padding when setting `logo.width` with chafa logos (#1947, Logo)
+    * Regression from v2.51.0
+* Improves Wallpaper detection on XFCE4 (Wallpaper, Linux)
+* Ignores process `Relay(xxx)` when detecting terminal on WSL2 (Terminal, Linux)
+
+Features:
+* Enables X11-related info (i.e., WM/DE) detection on Android (Global, Android)
+    * This requires many dependencies. See above.
+* Adds scale factors detection for X11 (Display, Linux)
+    * X11 doesn't natively report scale factor as Wayland does. Instead, Fastfetch tries to detect `Xft.dpi` (DPI used by X FreeType for scaling fonts), which is usually set by the WM when DPI scaling is enabled.
+    * It's not always accurate. For example, XFCE4 has a separate config for text scaling, which is unaffected by the global DPI scaling setting.
+* Adds `display.fraction.trailingZeros: [always|never]` option for fraction formatting
+    * The default value of `display.fraction.ndigits` is changed from `-1` (unlimited) to `2` for usability.
+    * Used for displaying scale factor in Display module mentioned above, alongside other places for printing raw fraction numbers.
+* Informs users that module-specific CLI options are no longer supported and provide guidance for transitioning to JSON config
+* Adds CPU name detection support for IA64 (CPU, Linux)
+* Support Btrfs allocation profile detection (#1941, Btrfs, Linux)
+
+# 2.51.1
+
+Bugfixes:
+* Fix building on macOS 14 or older; no functional changes (CPU, macOS)
+
+# 2.51.0
+
+Changes:
+* Fastfetch now requires [yyjson 0.12](https://github.com/ibireme/yyjson/releases/tag/0.12.0) to build when using `-DENABLE_SYSTEM_YYJSON=ON`.
+* The Disk module no longer shows hyperlink mountpoints by default, which cause issues on some real consoles (Disk)
+    * Instead, the custom key for the Disk module now supports `{mountpoint-link}` and `{name-link}` to show hyperlinks for mountpoints and names. For example, `{ "type": "disk", "key": "Disk ({mountpoint-link})" }` can be used to restore the old behavior.
+
+Features:
+* Adds `succeeded` module condition to JSONC config. When set to `false`, the module will only run if the last module failed (#1908)
+    * Useful for displaying fallback placeholders when a module fails. For example:
+```jsonc
+{
+    "host",
+    // If fastfetch fails to detect host info, display "DIY PC" instead
+    {
+        "type": "custom",
+        "condition": {
+            "succeeded": false
+        },
+        "key": "Host",
+        "format": "DIY PC"
+    }
+}
+```
+* By upgrading to yyjson 0.12, fastfetch now adds [JSON5](https://json5.org/) format support for configuration files (#1907)
+    * [JSON5](https://json5.org/) is a superset of JSONC that allows unquoted keys, single quotes, multi-line strings, etc., and is fully compatible with JSONC and strict JSON.
+    * To use JSON5, simply name your config file with a `.json5` extension. The `.jsonc` extension is still supported and used as the default extension for better IDE syntax highlighting support.
+* Fastfetch has been ported to [`GNU/Hurd`](https://www.gnu.org/software/hurd/) (#1895)
+    * Thanks to the efforts of @yelninei!
+* Built-in logos now honor `logo.width` (#1905)
+    * When its value is larger than the actual logo width, the logo will be padded with spaces to the right
+* Adds Trinity DE version detection (#1917, DE, Linux)
+* Adds formatted free and available disk size fields (#1929, Disk)
+    * `{size-free}`: free size of the disk
+    * `{size-available}`: available size of the disk
+    * See [askubuntu.com](https://askubuntu.com/questions/249387/df-h-used-space-avail-free-space-is-less-than-the-total-size-of-home) for the difference between free and available size
+* Adds [x86_64 micro-architecture level](https://en.wikipedia.org/wiki/X86-64#Microarchitecture_levels) detection (#1928, CPU)
+    * Useful when installing software that requires or is optimized for specific CPU features. E.g., [CachyOS](https://wiki.cachyos.org/features/optimized_repos/)
+    * Exposed via `{march}` in custom format
+* Adds [Aarch64 micro-architecture level](https://en.wikipedia.org/wiki/AArch64#Profiles) detection (CPU)
+    * Supported on Linux (including Android), macOS and Windows
+    * This is not fully accurate because there are many optional features across different levels, and not all levels are detectable.
+    * Exposed via `{march}` in custom format.
+* Adds shepherd detection support (InitSystem, Linux)
+
+Bugfixes:
+* Refines GPU detection logic to correctly handle virtual devices (#1920, GPU, Windows)
+* Fixes possible default route detection failure when the route table is very large (#1919, LocalIP, Linux)
+* Fastfetch now correctly parses `hwdata/pci.ids` files alongside `pciids/pci.ids` on FreeBSD when detecting GPU names (#1924, GPU, FreeBSD)
+* Fixes twin WM detection (#1917, WM, Linux)
+* Various fixes for Android support
+    * Corrects WM name for Android (WM, Android)
+    * Fixes battery temperature detection when running in ADB (Battery, Android)
+    * Adds CPU and GPU temperature detection support (CPU, Android)
+
+Logos:
+* Adds AerynOS
+
+# 2.50.2
+
+Bugfixes:
+* Fixes linglong package detection V2 (#1903, Packages, Linux)
+* Fixes building with `-DENABLE_SYSTEM_YYJSON=ON` (#1904)
+* Fixes `showMac` does not honor `defaultRouteOnly` (#1902, LocalIP, Linux)
+* Fixes failing to acquire default route on Linux in certain cases (#1902, LocalIP, Linux)
+
+# 2.50.1
+
+Bugfixes:
+* Fixes percentage bar not displaying correctly in certain cases
+* Fixes linglong package detection on Debian 13 (#1899, Packages, Linux)
+
+# 2.50.0
+
+Changes:
+* Keys in JSON configuration files are now case-sensitive, as stated in v2.49.0.
+    * This is a breaking change, but it should not affect most users as long as your config file passes JSON schema validation.
+* All module config flags have been removed, as stated in v2.49.0.
+    * To configure modules via the command line, use: `echo '{"modules": [{"type":"custom","format":"Hello Fastfetch!"}]}' | fastfetch -c -`.
+* The percent bar config `display.bar.*` options have been replaced with a more organized, nested object structure.
     * `display.bar.charElapsed` has been renamed to `display.bar.char.elapsed`.
     * `display.bar.charTotal` has been renamed to `display.bar.char.total`.
     * `display.bar.borderLeft` has been renamed to `display.bar.border.left`.
     * `display.bar.borderRight` has been renamed to `display.bar.border.right`.
+* The undocumented flag `--load-config` has been removed.
+    * Use `--config` or `-c` instead.
+* Flashfetch, a simplified fastfetch variant that used a hardcoded module list with direct function calls to reduce startup overhead, has been changed to a version that aims to match neofetch's behavior as closely as possible, for demonstration purposes.
+    * Flashfetch is intended to be built from source (like [st](https://st.suckless.org/)). We do not provide prebuilt binaries in distributions.
 
 Features:
-* Add `display.bar.border.{leftElapsed,rightElapsed}` for using border as parts of bar content. (#1875)
+* Added support for reading JSON config from stdin using `--config -` or `-c -`.
+* Added `display.bar.border.{leftElapsed,rightElapsed}` for using the border as part of the bar content. (#1875)
     * `display.bar.border: null` has been added as a shorthand to disable bar borders.
-* Add `display.bar.color.{elapsed,total,border}` to customize the color of the elapsed, total and border sections of the percent bar.
+* Added `display.bar.color.{elapsed,total,border}` to customize the color of the elapsed, total, and border sections of the percent bar.
     * `display.bar.color: null` has been added as a shorthand to disable bar colors.
+* Improved Bedrock Linux detection (#1881, OS / Disk, Linux)
+* Added the command flag `--gen-config-full`, which generates a JSON config file containing all optional module options.
+* Improved the default IP address display when `localip.showAllIPs` is not set (LocalIP)
+    * For IPv4, the preferred source address (if detected) is shown.
+    * For IPv6, the first GUA or ULA that is not deprecated or temporary is shown.
+* Added support for interface speed detection on SunOS (LocalIP, SunOS)
+* Added detection support for Xlibre (#1888, WM, Linux)
+* Improved the accuracy of color detection (Cursor, macOS)
+* Improved the proformance of `Nix` package manager detection on macOS by porting optimizations form Linux port (#1893, Packages, macOS)
+
+Bugfixes:
+* Fixed custom object inheriting a key from the previous custom object if the key is blank (#1477)
+* Fixed a possible segfault when parsing color strings in the JSON config (#1878)
+* Fixed GPU driver detection when DRM is used (GPU, FreeBSD)
+* Fixed default route detection on DragonFly BSD (LocalIP, DFBSD)
+* Fixed lliurex detection (#1882, OS, Linux)
+* Fixed compatibility with `-ffast-math` (#1894)
+* Fixed physical GPU sometimes being ignored (#1896, GPU, Windows)
+
+Logos:
+* Added ObsidianOS (#1890)
 
 # 2.49.0
 

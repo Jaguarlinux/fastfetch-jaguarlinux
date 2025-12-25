@@ -46,7 +46,7 @@ static void printGPUResult(FFGPUOptions* options, uint8_t index, const FFGPUResu
             ffFreqAppendNum(gpu->frequency, &output);
         }
 
-        if(gpu->temperature == gpu->temperature) //FF_GPU_TEMP_UNSET
+        if(gpu->temperature != FF_GPU_TEMP_UNSET)
         {
             ffStrbufAppendS(&output, " - ");
             ffTempsAppendNum(gpu->temperature, &output, options->tempConfig, &options->moduleArgs);
@@ -126,7 +126,7 @@ static void printGPUResult(FFGPUOptions* options, uint8_t index, const FFGPUResu
 
         FF_STRBUF_AUTO_DESTROY coreUsageNum = ffStrbufCreate();
         FF_STRBUF_AUTO_DESTROY coreUsageBar = ffStrbufCreate();
-        if (gpu->coreUsage == gpu->coreUsage) //FF_GPU_CORE_USAGE_UNSET
+        if (gpu->coreUsage != FF_GPU_CORE_USAGE_UNSET)
         {
             if (percentType & FF_PERCENTAGE_TYPE_NUM_BIT)
                 ffPercentAppendNum(&coreUsageNum, gpu->coreUsage, options->percent, false, &options->moduleArgs);
@@ -159,14 +159,14 @@ static void printGPUResult(FFGPUOptions* options, uint8_t index, const FFGPUResu
     }
 }
 
-void ffPrintGPU(FFGPUOptions* options)
+bool ffPrintGPU(FFGPUOptions* options)
 {
     FF_LIST_AUTO_DESTROY gpus = ffListCreate(sizeof (FFGPUResult));
     const char* error = ffDetectGPU(options, &gpus);
     if (error)
     {
         ffPrintError(FF_GPU_MODULE_NAME, 0, &options->moduleArgs, FF_PRINT_TYPE_DEFAULT, "%s", error);
-        return;
+        return false;
     }
 
     FF_LIST_AUTO_DESTROY selectedGPUs;
@@ -200,6 +200,8 @@ void ffPrintGPU(FFGPUOptions* options)
         ffStrbufDestroy(&gpu->platformApi);
         ffStrbufDestroy(&gpu->memoryType);
     }
+
+    return true;
 }
 
 void ffParseGPUJsonObject(FFGPUOptions* options, yyjson_val* module)
@@ -313,14 +315,14 @@ void ffGenerateGPUJsonConfig(FFGPUOptions* options, yyjson_mut_doc* doc, yyjson_
     ffPercentGenerateJsonConfig(doc, module, options->percent);
 }
 
-void ffGenerateGPUJsonResult(FFGPUOptions* options, yyjson_mut_doc* doc, yyjson_mut_val* module)
+bool ffGenerateGPUJsonResult(FFGPUOptions* options, yyjson_mut_doc* doc, yyjson_mut_val* module)
 {
     FF_LIST_AUTO_DESTROY gpus = ffListCreate(sizeof (FFGPUResult));
     const char* error = ffDetectGPU(options, &gpus);
     if (error)
     {
         yyjson_mut_obj_add_str(doc, module, "error", error);
-        return;
+        return false;
     }
 
     yyjson_mut_val* arr = yyjson_mut_obj_add_arr(doc, module, "result");
@@ -338,7 +340,10 @@ void ffGenerateGPUJsonResult(FFGPUOptions* options, yyjson_mut_doc* doc, yyjson_
         else
             yyjson_mut_obj_add_null(doc, obj, "coreCount");
 
-        yyjson_mut_obj_add_real(doc, obj, "coreUsage", gpu->coreUsage);
+        if (gpu->coreUsage != FF_GPU_CORE_USAGE_UNSET)
+            yyjson_mut_obj_add_real(doc, obj, "coreUsage", gpu->coreUsage);
+        else
+            yyjson_mut_obj_add_null(doc, obj, "coreUsage");
 
         yyjson_mut_val* memoryObj = yyjson_mut_obj_add_obj(doc, obj, "memory");
 
@@ -371,7 +376,7 @@ void ffGenerateGPUJsonResult(FFGPUOptions* options, yyjson_mut_doc* doc, yyjson_
         yyjson_mut_obj_add_strbuf(doc, obj, "driver", &gpu->driver);
         yyjson_mut_obj_add_strbuf(doc, obj, "name", &gpu->name);
 
-        if(gpu->temperature == gpu->temperature) //FF_GPU_TEMP_UNSET
+        if(gpu->temperature != FF_GPU_TEMP_UNSET)
             yyjson_mut_obj_add_real(doc, obj, "temperature", gpu->temperature);
         else
             yyjson_mut_obj_add_null(doc, obj, "temperature");
@@ -381,15 +386,21 @@ void ffGenerateGPUJsonResult(FFGPUOptions* options, yyjson_mut_doc* doc, yyjson_
         {
             case FF_GPU_TYPE_INTEGRATED: type = "Integrated"; break;
             case FF_GPU_TYPE_DISCRETE: type = "Discrete"; break;
-            default: type = "Unknown"; break;
+            default: type = NULL; break;
         }
-        yyjson_mut_obj_add_str(doc, obj, "type", type);
+        if (type)
+            yyjson_mut_obj_add_str(doc, obj, "type", type);
+        else
+            yyjson_mut_obj_add_null(doc, obj, "type");
 
         yyjson_mut_obj_add_strbuf(doc, obj, "vendor", &gpu->vendor);
 
         yyjson_mut_obj_add_strbuf(doc, obj, "platformApi", &gpu->platformApi);
 
-        yyjson_mut_obj_add_uint(doc, obj, "frequency", gpu->frequency);
+        if (gpu->frequency != FF_GPU_FREQUENCY_UNSET)
+            yyjson_mut_obj_add_uint(doc, obj, "frequency", gpu->frequency);
+        else
+            yyjson_mut_obj_add_null(doc, obj, "frequency");
 
         yyjson_mut_obj_add_uint(doc, obj, "deviceId", gpu->deviceId);
     }
@@ -402,6 +413,8 @@ void ffGenerateGPUJsonResult(FFGPUOptions* options, yyjson_mut_doc* doc, yyjson_
         ffStrbufDestroy(&gpu->platformApi);
         ffStrbufDestroy(&gpu->memoryType);
     }
+
+    return true;
 }
 
 void ffInitGPUOptions(FFGPUOptions* options)

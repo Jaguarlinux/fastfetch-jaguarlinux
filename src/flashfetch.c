@@ -1,6 +1,7 @@
 #include "fastfetch.h"
 
 #include "common/init.h"
+#include "logo/logo.h"
 #include "modules/modules.h"
 
 // A dirty replicate of neofetch
@@ -10,7 +11,7 @@ int main(void)
 
     // Modify global config here if needed
     instance.config.display.sizeMaxPrefix = 2; // MB
-    instance.config.display.sizeNdigits = 2;
+    instance.config.display.sizeNdigits = 0;
     instance.config.display.freqNdigits = 3;
     instance.config.display.freqSpaceBeforeUnit = FF_SPACE_BEFORE_UNIT_NEVER;
     instance.config.display.sizeSpaceBeforeUnit = FF_SPACE_BEFORE_UNIT_NEVER;
@@ -136,6 +137,7 @@ int main(void)
         ffPrintColors(&options);
     }
 
+    ffLogoPrintRemaining();
     ffFinish();
     ffDestroyInstance();
     return 0;

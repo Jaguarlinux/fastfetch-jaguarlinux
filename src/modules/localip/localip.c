@@ -37,17 +37,13 @@ static void appendSpeed(FFLocalIpResult* ip, FFstrbuf* strbuf)
 {
     if (ip->speed >= 1000000)
     {
-        if (instance.config.display.fractionNdigits >= 0)
-            ffStrbufAppendF(strbuf, "%.*f Tbps", instance.config.display.fractionNdigits, ip->speed / 1000000.0);
-        else
-            ffStrbufAppendF(strbuf, "%g Tbps", ip->speed / 1000000.0);
+        ffStrbufAppendDouble(strbuf, ip->speed / 1e6, instance.config.display.fractionNdigits, instance.config.display.fractionTrailingZeros == FF_FRACTION_TRAILING_ZEROS_TYPE_ALWAYS);
+        ffStrbufAppendS(strbuf, " Tbps");
     }
     else if (ip->speed >= 1000)
     {
-        if (instance.config.display.fractionNdigits >= 0)
-            ffStrbufAppendF(strbuf, "%.*f Gbps", instance.config.display.fractionNdigits, ip->speed / 1000.0);
-        else
-            ffStrbufAppendF(strbuf, "%g Gbps", ip->speed / 1000.0);
+        ffStrbufAppendDouble(strbuf, ip->speed / 1e3, instance.config.display.fractionNdigits, instance.config.display.fractionTrailingZeros == FF_FRACTION_TRAILING_ZEROS_TYPE_ALWAYS);
+        ffStrbufAppendS(strbuf, " Gbps");
     }
     else
         ffStrbufAppendF(strbuf, "%u Mbps", (unsigned) ip->speed);
@@ -91,15 +87,17 @@ static void printIp(FFLocalIpResult* ip, bool markDefaultRoute, FFstrbuf* buffer
     }
     if (ip->flags.length)
     {
-        if (buffer->length) ffStrbufAppendS(buffer, " <");
+        bool flag = buffer->length > 0;
+        if (flag) ffStrbufAppendS(buffer, " <");
         ffStrbufAppend(buffer, &ip->flags);
-        ffStrbufAppendC(buffer, '>');
+        if (flag)
+            ffStrbufAppendC(buffer, '>');
     }
     if (markDefaultRoute && ip->defaultRoute)
         ffStrbufAppendS(buffer, " *");
 }
 
-void ffPrintLocalIp(FFLocalIpOptions* options)
+bool ffPrintLocalIp(FFLocalIpOptions* options)
 {
     FF_LIST_AUTO_DESTROY results = ffListCreate(sizeof(FFLocalIpResult));
 
@@ -108,13 +106,13 @@ void ffPrintLocalIp(FFLocalIpOptions* options)
     if(error)
     {
         ffPrintError(FF_LOCALIP_DISPLAY_NAME, 0, &options->moduleArgs, FF_PRINT_TYPE_DEFAULT, "%s", error);
-        return;
+        return false;
     }
 
     if(results.length == 0)
     {
         ffPrintError(FF_LOCALIP_DISPLAY_NAME, 0, &options->moduleArgs, FF_PRINT_TYPE_DEFAULT, "Failed to detect any IPs");
-        return;
+        return false;
     }
 
     ffListSort(&results, (const void*) sortIps);
@@ -176,6 +174,8 @@ void ffPrintLocalIp(FFLocalIpOptions* options)
         ffStrbufDestroy(&ip->mac);
         ffStrbufDestroy(&ip->flags);
     }
+
+    return true;
 }
 
 void ffParseLocalIpJsonObject(FFLocalIpOptions* options, yyjson_val* module)
@@ -198,10 +198,33 @@ void ffParseLocalIpJsonObject(FFLocalIpOptions* options, yyjson_val* module)
 
         if (unsafe_yyjson_equals_str(key, "showIpv6"))
         {
-            if (yyjson_get_bool(val))
-                options->showType |= FF_LOCALIP_TYPE_IPV6_BIT;
-            else
-                options->showType &= ~FF_LOCALIP_TYPE_IPV6_BIT;
+            if (yyjson_is_bool(val))
+            {
+                options->ipv6Type = FF_LOCALIP_IPV6_TYPE_AUTO;
+                if (unsafe_yyjson_get_bool(val))
+                    options->showType |= FF_LOCALIP_TYPE_IPV6_BIT;
+                else
+                    options->showType &= ~FF_LOCALIP_TYPE_IPV6_BIT;
+            }
+            else if (yyjson_is_str(val))
+            {
+                int value;
+                const char* error = ffJsonConfigParseEnum(val, &value, (FFKeyValuePair[]) {
+                    { "auto", FF_LOCALIP_IPV6_TYPE_AUTO },
+                    { "gua", FF_LOCALIP_IPV6_TYPE_GUA_BIT },
+                    { "ula", FF_LOCALIP_IPV6_TYPE_ULA_BIT },
+                    { "lla", FF_LOCALIP_IPV6_TYPE_LLA_BIT },
+                    { "unknown", FF_LOCALIP_IPV6_TYPE_UNKNOWN_BIT },
+                    {},
+                });
+                if (error)
+                    ffPrintError(FF_LOCALIP_MODULE_NAME, 0, &options->moduleArgs, FF_PRINT_TYPE_DEFAULT, "Invalid %s value: %s", unsafe_yyjson_get_str(key), error);
+                else
+                {
+                    options->showType |= FF_LOCALIP_TYPE_IPV6_BIT;
+                    options->ipv6Type = (FFLocalIpIpv6Type) value;
+                }
+            }
             continue;
         }
 
@@ -302,7 +325,21 @@ void ffGenerateLocalIpJsonConfig(FFLocalIpOptions* options, yyjson_mut_doc* doc,
 
     yyjson_mut_obj_add_bool(doc, module, "showIpv4", !!(options->showType & FF_LOCALIP_TYPE_IPV4_BIT));
 
-    yyjson_mut_obj_add_bool(doc, module, "showIpv6", !!(options->showType & FF_LOCALIP_TYPE_IPV6_BIT));
+    if (options->ipv6Type == FF_LOCALIP_IPV6_TYPE_AUTO)
+        yyjson_mut_obj_add_bool(doc, module, "showIpv6", !!(options->showType & FF_LOCALIP_TYPE_IPV6_BIT));
+    else
+    {
+        const char* str = NULL;
+        switch (options->ipv6Type)
+        {
+            case FF_LOCALIP_IPV6_TYPE_GUA_BIT:     str = "gua"; break;
+            case FF_LOCALIP_IPV6_TYPE_ULA_BIT:     str = "ula"; break;
+            case FF_LOCALIP_IPV6_TYPE_LLA_BIT:     str = "lla"; break;
+            case FF_LOCALIP_IPV6_TYPE_UNKNOWN_BIT: str = "unknown"; break;
+            default:                               str = "auto"; break;
+        }
+        yyjson_mut_obj_add_str(doc, module, "showIpv6", str);
+    }
 
     yyjson_mut_obj_add_bool(doc, module, "showMac", !!(options->showType & FF_LOCALIP_TYPE_MAC_BIT));
 
@@ -325,7 +362,7 @@ void ffGenerateLocalIpJsonConfig(FFLocalIpOptions* options, yyjson_mut_doc* doc,
     yyjson_mut_obj_add_strbuf(doc, module, "namePrefix", &options->namePrefix);
 }
 
-void ffGenerateLocalIpJsonResult(FF_MAYBE_UNUSED FFLocalIpOptions* options, yyjson_mut_doc* doc, yyjson_mut_val* module)
+bool ffGenerateLocalIpJsonResult(FF_MAYBE_UNUSED FFLocalIpOptions* options, yyjson_mut_doc* doc, yyjson_mut_val* module)
 {
     FF_LIST_AUTO_DESTROY results = ffListCreate(sizeof(FFLocalIpResult));
 
@@ -334,7 +371,7 @@ void ffGenerateLocalIpJsonResult(FF_MAYBE_UNUSED FFLocalIpOptions* options, yyjs
     if(error)
     {
         yyjson_mut_obj_add_str(doc, module, "error", error);
-        return;
+        return false;
     }
 
     yyjson_mut_val* arr = yyjson_mut_obj_add_arr(doc, module, "result");
@@ -342,7 +379,14 @@ void ffGenerateLocalIpJsonResult(FF_MAYBE_UNUSED FFLocalIpOptions* options, yyjs
     {
         yyjson_mut_val* obj = yyjson_mut_arr_add_obj(doc, arr);
         yyjson_mut_obj_add_strbuf(doc, obj, "name", &ip->name);
-        yyjson_mut_obj_add_bool(doc, obj, "defaultRoute", ip->defaultRoute);
+        if (options->showType & (FF_LOCALIP_TYPE_IPV4_BIT | FF_LOCALIP_TYPE_IPV6_BIT))
+        {
+            yyjson_mut_val* defaultRoute = yyjson_mut_obj_add_obj(doc, obj, "defaultRoute");
+            if (options->showType & FF_LOCALIP_TYPE_IPV4_BIT)
+                yyjson_mut_obj_add_bool(doc, defaultRoute, "ipv4", !!(ip->defaultRoute & FF_LOCALIP_TYPE_IPV4_BIT));
+            if (options->showType & FF_LOCALIP_TYPE_IPV6_BIT)
+                yyjson_mut_obj_add_bool(doc, defaultRoute, "ipv6", !!(ip->defaultRoute & FF_LOCALIP_TYPE_IPV6_BIT));
+        }
         if (options->showType & FF_LOCALIP_TYPE_IPV4_BIT)
             yyjson_mut_obj_add_strbuf(doc, obj, "ipv4", &ip->ipv4);
         if (options->showType & FF_LOCALIP_TYPE_IPV6_BIT)
@@ -365,6 +409,8 @@ void ffGenerateLocalIpJsonResult(FF_MAYBE_UNUSED FFLocalIpOptions* options, yyjs
         ffStrbufDestroy(&ip->mac);
         ffStrbufDestroy(&ip->flags);
     }
+
+    return true;
 }
 
 void ffInitLocalIpOptions(FFLocalIpOptions* options)
@@ -376,6 +422,7 @@ void ffInitLocalIpOptions(FFLocalIpOptions* options)
             | FF_LOCALIP_TYPE_DEFAULT_ROUTE_ONLY_BIT
         #endif
     ;
+    options->ipv6Type = FF_LOCALIP_IPV6_TYPE_AUTO;
     ffStrbufInit(&options->namePrefix);
 }
 

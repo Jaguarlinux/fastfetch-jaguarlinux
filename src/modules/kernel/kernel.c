@@ -4,18 +4,13 @@
 #include "modules/kernel/kernel.h"
 #include "util/stringUtils.h"
 
-void ffPrintKernel(FFKernelOptions* options)
+bool ffPrintKernel(FFKernelOptions* options)
 {
     const FFPlatformSysinfo* info = &instance.state.platform.sysinfo;
     if(options->moduleArgs.outputFormat.length == 0)
     {
         ffPrintLogoAndKey(FF_KERNEL_MODULE_NAME, 0, &options->moduleArgs, FF_PRINT_TYPE_DEFAULT);
-        printf("%s %s", info->name.chars, info->release.chars);
-
-        if(info->displayVersion.length > 0)
-            printf(" (%s)\n", info->displayVersion.chars);
-        else
-            putchar('\n');
+        printf("%s %s\n", info->name.chars, info->release.chars);
     }
     else
     {
@@ -26,10 +21,11 @@ void ffPrintKernel(FFKernelOptions* options)
             FF_FORMAT_ARG(info->release, "release"),
             FF_FORMAT_ARG(info->version, "version"),
             FF_FORMAT_ARG(info->architecture, "arch"),
-            FF_FORMAT_ARG(info->displayVersion, "display-version"),
             FF_FORMAT_ARG(str, "page-size"),
         }));
     }
+
+    return true;
 }
 
 void ffParseKernelJsonObject(FFKernelOptions* options, yyjson_val* module)
@@ -50,7 +46,7 @@ void ffGenerateKernelJsonConfig(FFKernelOptions* options, yyjson_mut_doc* doc, y
     ffJsonConfigGenerateModuleArgsConfig(doc, module, &options->moduleArgs);
 }
 
-void ffGenerateKernelJsonResult(FF_MAYBE_UNUSED FFKernelOptions* options, yyjson_mut_doc* doc, yyjson_mut_val* module)
+bool ffGenerateKernelJsonResult(FF_MAYBE_UNUSED FFKernelOptions* options, yyjson_mut_doc* doc, yyjson_mut_val* module)
 {
     const FFPlatformSysinfo* info = &instance.state.platform.sysinfo;
 
@@ -59,8 +55,9 @@ void ffGenerateKernelJsonResult(FF_MAYBE_UNUSED FFKernelOptions* options, yyjson
     yyjson_mut_obj_add_strbuf(doc, obj, "name", &info->name);
     yyjson_mut_obj_add_strbuf(doc, obj, "release", &info->release);
     yyjson_mut_obj_add_strbuf(doc, obj, "version", &info->version);
-    yyjson_mut_obj_add_strbuf(doc, obj, "displayVersion", &info->displayVersion);
     yyjson_mut_obj_add_uint(doc, obj, "pageSize", info->pageSize);
+
+    return true;
 }
 
 void ffInitKernelOptions(FFKernelOptions* options)

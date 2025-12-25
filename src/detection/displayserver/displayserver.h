@@ -44,6 +44,7 @@
 #define FF_WM_PROTOCOL_TTY "TTY"
 #define FF_WM_PROTOCOL_X11 "X11"
 #define FF_WM_PROTOCOL_WAYLAND "Wayland"
+#define FF_WM_PROTOCOL_SURFACEFLINGER "SurfaceFlinger"
 
 typedef enum __attribute__((__packed__)) FFDisplayType {
     FF_DISPLAY_TYPE_UNKNOWN,
@@ -58,6 +59,13 @@ typedef enum __attribute__((__packed__)) FFDisplayHdrStatus
     FF_DISPLAY_HDR_STATUS_SUPPORTED,
     FF_DISPLAY_HDR_STATUS_ENABLED,
 } FFDisplayHdrStatus;
+
+typedef enum __attribute__((__packed__)) FFDisplayVrrStatus
+{
+    FF_DISPLAY_DRR_STATUS_UNKNOWN,
+    FF_DISPLAY_DRR_STATUS_DISABLED,
+    FF_DISPLAY_DRR_STATUS_ENABLED,
+} FFDisplayVrrStatus;
 
 typedef struct FFDisplayResult
 {
@@ -82,6 +90,7 @@ typedef struct FFDisplayResult
     uint16_t manufactureYear;
     uint16_t manufactureWeek;
     uint32_t serial;
+    FFDisplayVrrStatus drrStatus;
 } FFDisplayResult;
 
 typedef struct FFDisplayServerResult
